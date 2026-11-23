@@ -1,0 +1,1415 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tippgemeinschaft Simulator 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1f2a48; --muted:#5b6687; --panel:#ffffff; --panel-soft:rgba(255,255,255,.9); --stamp-bg:rgba(255,255,255,.86);
+  --scrim:rgba(170,205,228,.55); --red:#e2423b; --red-dark:#a92b25; --gold:#f4b728; --gold-ink:#3a2a00; --ok:#23945f;
+  --blue:#2f6fd6; --cell-x:#fde3e1; --xl-line:#c9cfdb; --xl-head:#eef1f6; --xl-red:#fbd5d2; --xl-green:#d3f1df; --xl-amber:#fde7b8;
+  --xl-red-ink:#a62520; --xl-green-ink:#16683f; --xl-amber-ink:#7a4f00; --on-accent:#ffffff; --sky:#cfe8f5;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#eef1fb; --muted:#a9b2cf; --panel:#1c2238; --panel-soft:rgba(28,34,56,.92); --stamp-bg:rgba(28,34,56,.88); --scrim:rgba(8,12,26,.55);
+    --cell-x:#4a2430; --xl-line:#3a4363; --xl-head:#262d48; --xl-red:#4d2228; --xl-green:#1d4030; --xl-amber:#4a3a17;
+    --xl-red-ink:#ffb3ad; --xl-green-ink:#9be5bd; --xl-amber-ink:#ffd98a; --red-dark:#8f2420; --ok:#38b97c;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#eef1fb; --muted:#a9b2cf; --panel:#1c2238; --panel-soft:rgba(28,34,56,.92); --stamp-bg:rgba(28,34,56,.88); --scrim:rgba(8,12,26,.55);
+  --cell-x:#4a2430; --xl-line:#3a4363; --xl-head:#262d48; --xl-red:#4d2228; --xl-green:#1d4030; --xl-amber:#4a3a17;
+  --xl-red-ink:#ffb3ad; --xl-green-ink:#9be5bd; --xl-amber-ink:#ffd98a; --red-dark:#8f2420; --ok:#38b97c;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;overflow:hidden;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;overflow:hidden;background:var(--sky);color:var(--ink);
+  font-family:'Fredoka','Trebuchet MS','Segoe UI',system-ui,sans-serif;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+
+/* HUD */
+#hud{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 0;
+  pointer-events:none;display:none;flex-direction:column;gap:8px;max-width:520px;margin:0 auto}
+#hud.on{display:flex}
+.track{position:relative;height:14px;border-radius:999px;background:var(--panel-soft);box-shadow:0 3px 10px rgba(31,42,72,.15)}
+.track .fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,#9fc3f7,var(--blue))}
+.mark{position:absolute;top:50%;width:20px;height:20px;border-radius:50%;transform:translate(-50%,-50%);border:3px solid var(--panel)}
+.mark.s{background:var(--blue)} .mark.p{background:var(--red)}
+.kiosk-pin{position:absolute;right:-4px;top:50%;transform:translateY(-50%);font-size:20px}
+.hudrow{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600;font-size:15px}
+.hudrow.center{justify-content:center}
+.pill{background:var(--panel-soft);color:var(--ink);padding:6px 12px;border-radius:999px;box-shadow:0 3px 10px rgba(31,42,72,.15);white-space:nowrap}
+.pill.in{background:var(--ok);color:var(--on-accent)}
+.pill.warn{background:var(--red);color:var(--on-accent)}
+.pill.gold{background:var(--gold);color:var(--gold-ink)}
+.coin-ico{display:inline-block;width:16px;height:16px;border-radius:50%;vertical-align:-2px;margin-right:6px;
+  background:radial-gradient(circle,#dfe3ea 0 52%,#e9bb3c 54%)}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 140px);transform:translateX(-50%);
+  background:var(--ink);color:var(--panel);padding:9px 16px;border-radius:14px;font-weight:600;font-size:15px;
+  opacity:0;transition:opacity .2s;pointer-events:none;max-width:86vw;text-align:center}
+#toast.on{opacity:1}
+#banner{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%) rotate(-4deg);background:var(--gold);color:var(--gold-ink);
+  border-radius:22px;padding:16px 22px;text-align:center;pointer-events:none;opacity:0;box-shadow:0 8px 0 #b9860f,0 20px 40px rgba(0,0,0,.25);
+  width:max-content;max-width:88vw}
+#banner.on{animation:banner 2.8s ease forwards}
+#banner .bt{font-size:42px;font-weight:700;line-height:1}
+#banner .bs{font-size:18px;font-weight:600;margin-top:6px}
+@keyframes banner{0%{opacity:0;transform:translate(-50%,-50%) rotate(-4deg) scale(.4)}12%{opacity:1;transform:translate(-50%,-50%) rotate(-4deg) scale(1.08)}
+  20%{transform:translate(-50%,-50%) rotate(-4deg) scale(1)}85%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%) rotate(-4deg)}}
+
+/* Sprechblasen */
+#bubbles{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.bubble{position:absolute;left:0;top:0;background:var(--panel);color:var(--ink);border:2.5px solid var(--ink);
+  border-radius:14px;padding:6px 10px;font-size:14px;font-weight:600;line-height:1.25;max-width:190px;width:max-content;
+  text-align:center;box-shadow:0 4px 0 rgba(31,42,72,.25)}
+.bubble::after{content:"";position:absolute;left:50%;bottom:-9px;width:12px;height:12px;background:var(--panel);
+  border-right:2.5px solid var(--ink);border-bottom:2.5px solid var(--ink);transform:translateX(-50%) rotate(45deg)}
+
+/* Overlays */
+.screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:var(--scrim);
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 14px calc(env(safe-area-inset-bottom,0px) + 14px)}
+.screen.on{display:flex}
+.card{background:var(--panel);color:var(--ink);border-radius:24px;padding:22px 20px;width:100%;max-width:420px;
+  max-height:100%;overflow:auto;box-shadow:0 18px 40px rgba(31,42,72,.25)}
+h1{font-size:30px;line-height:1.05;margin:0 0 10px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:24px;line-height:1.1;margin:0 0 8px;font-weight:700}
+p{margin:0 0 12px;font-size:16px;line-height:1.4;color:var(--muted)}
+.controls{display:grid;gap:8px;margin:14px 0 14px}
+.ctl{display:flex;align-items:center;gap:12px;font-size:16px;font-weight:500}
+.ctl b{flex:0 0 38px;height:38px;border-radius:12px;background:var(--xl-head);display:flex;align-items:center;justify-content:center;font-size:19px}
+.jp{background:var(--gold);color:var(--gold-ink);border-radius:14px;padding:10px 14px;font-weight:600;font-size:16px;margin:0 0 12px}
+.btn{appearance:none;border:0;width:100%;font:inherit;font-size:19px;font-weight:600;padding:14px 18px;border-radius:16px;
+  background:var(--red);color:var(--on-accent);box-shadow:0 5px 0 var(--red-dark);cursor:pointer;margin-top:6px;
+  transition:transform .08s, box-shadow .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--red-dark)}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2.5px var(--xl-line);margin-top:10px}
+.btn:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.small{font-size:14px;color:var(--muted);margin-top:12px;margin-bottom:0}
+
+/* Excel-Zeile */
+.xl{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0 6px;font-family:Calibri,'Segoe UI',system-ui,sans-serif}
+.xl th,.xl td{border:1px solid var(--xl-line);padding:6px 8px;text-align:left}
+.xl th{background:var(--xl-head);font-weight:600;color:var(--muted)}
+.xl td.red{background:var(--xl-red);color:var(--xl-red-ink);font-weight:700}
+.xl td.green{background:var(--xl-green);color:var(--xl-green-ink);font-weight:700}
+.xl td.amber{background:var(--xl-amber);color:var(--xl-amber-ink);font-weight:700}
+
+/* Ziehung */
+.balls{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;min-height:44px;margin:6px 0 12px}
+.ball{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;
+  color:#3a2a00;background:radial-gradient(circle at 34% 30%,#fff 0 14%,#f8d978 38%,#d99a12 100%);
+  box-shadow:0 5px 9px rgba(0,0,0,.25);animation:drop .55s cubic-bezier(.3,1.6,.5,1)}
+.ball.euro{color:#fff;background:radial-gradient(circle at 34% 30%,#fff 0 12%,#8fb4ff 36%,#2b58c4 100%)}
+.ball.hit{outline:3px solid var(--ok);outline-offset:2px}
+@keyframes drop{from{transform:translateY(-40px) scale(.6);opacity:0}to{transform:none;opacity:1}}
+.ticket{border:2.5px solid var(--red);border-radius:14px;padding:10px 10px 12px;position:relative}
+.ticket-label{font-size:13px;font-weight:600;color:var(--red);margin:0 0 6px;display:flex;justify-content:space-between}
+.g50{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+.g12{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin-top:4px}
+.cell{aspect-ratio:1;border:1.5px solid var(--red);border-radius:5px;color:var(--red);font-size:12px;font-weight:500;
+  display:flex;align-items:center;justify-content:center;position:relative}
+.cell.x{background:var(--cell-x)}
+.cell.x::before,.cell.x::after{content:"";position:absolute;left:14%;right:14%;top:50%;height:2.5px;margin-top:-1px;
+  background:var(--ink);border-radius:2px;transform:rotate(45deg)}
+.cell.x::after{transform:rotate(-45deg)}
+.cell.drawn{box-shadow:0 0 0 2.5px var(--gold)}
+.cell.hit{box-shadow:0 0 0 3px var(--ok);animation:pop .4s}
+@keyframes pop{50%{transform:scale(1.35)}}
+.stamp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-12deg);display:none;pointer-events:none;
+  font-size:42px;font-weight:700;line-height:1.02;text-align:center;padding:12px 18px;border:5px solid currentColor;border-radius:16px;
+  background:var(--stamp-bg);width:max-content;max-width:86%;letter-spacing:.02em}
+.stamp small{display:block;font-size:18px;font-weight:600;margin-top:6px;letter-spacing:0}
+.stamp.on{display:block;animation:stamp .5s cubic-bezier(.2,1.4,.4,1)}
+.stamp.win{color:var(--ok)} .stamp.lose{color:var(--red)} .stamp.jackpot{color:#c98a00;font-size:52px}
+@keyframes stamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-12deg) scale(2.4)}100%{opacity:1;transform:translate(-50%,-50%) rotate(-12deg) scale(1)}}
+.result{margin-top:14px;min-height:20px}
+.result .big{font-size:22px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.hidden{display:none}
+@media (prefers-reduced-motion:reduce){.ball,.cell.hit,.stamp.on{animation:none}#banner.on{animation:none;opacity:1}.btn{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Spielfeld"></canvas>
+<div id="bubbles"></div>
+
+<div id="hud">
+  <div class="track" aria-hidden="true">
+    <div class="fill" id="hudFill"></div>
+    <div class="mark p" id="pMark"></div>
+    <div class="mark s" id="sMark"></div>
+    <div class="kiosk-pin">🏪</div>
+  </div>
+  <div class="hudrow">
+    <span class="pill" id="hudGap">Abstand</span>
+    <span class="pill" id="hudTime">Annahmeschluss</span>
+    <span class="pill"><span class="coin-ico"></span><span id="hudAmmo">1</span></span>
+  </div>
+  <div class="hudrow center hidden" id="hudSpecialRow"><span class="pill gold" id="hudSpecial"></span></div>
+</div>
+<div id="toast" role="status"></div>
+<div id="banner" aria-live="polite"><div class="bt"></div><div class="bs"></div></div>
+
+<div class="screen on" id="startScreen">
+  <div class="card">
+    <h1>Tippgemeinschaft Simulator 2026</h1>
+    <p>Schulte rennt mit dem Euro-Eimer durch Rheine zum Lotto-Büdchen. Wirf deinen Euro hinein, bevor er ankommt. Sonst stehst du rot in der Tabelle.</p>
+    <div class="controls">
+      <div class="ctl"><b>↔</b>Wischen: Spur wechseln</div>
+      <div class="ctl"><b>↑</b>Nach oben wischen: springen</div>
+      <div class="ctl"><b>👆</b>Tippen: Euro werfen, wenn du in Wurfweite bist</div>
+    </div>
+    <div class="jp" id="jpLine"></div>
+    <button class="btn" id="startBtn">Loslaufen</button>
+    <button class="btn ghost" id="specialBtn">Jackpot-Woche ausprobieren</button>
+    <p class="small" id="statsLine"></p>
+  </div>
+</div>
+
+<div class="screen" id="lostScreen">
+  <div class="card">
+    <h2 id="lostTitle">Schulte war schneller</h2>
+    <p id="lostText"></p>
+    <table class="xl" id="lostXl"></table>
+    <button class="btn" id="retryBtn">Nochmal laufen</button>
+    <button class="btn ghost" id="watchBtn">Ziehung trotzdem ansehen</button>
+  </div>
+</div>
+
+<div class="screen" id="drawScreen">
+  <div class="card">
+    <h2 id="drawTitle">Ziehung</h2>
+    <div class="balls" id="balls" aria-live="polite"></div>
+    <div class="ticket">
+      <div class="ticket-label"><span id="tippLabel">Euer Tipp</span><span>5 aus 50</span></div>
+      <div class="g50" id="g50"></div>
+      <div class="ticket-label" style="margin-top:10px"><span>Eurozahlen</span><span>2 aus 12</span></div>
+      <div class="g12" id="g12"></div>
+      <div class="stamp" id="stamp" aria-live="assertive"></div>
+    </div>
+    <div class="result" id="result"></div>
+    <table class="xl hidden" id="drawXl"></table>
+    <button class="btn hidden" id="nextBtn">Nächste Woche</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+const L = 520, LANES = [-1.7, 0, 1.7], RANGE = 8.5, P_BASE = 10.8, S_BASE = 10, SPECIAL_JP = 90;
+const $ = s => document.querySelector(s);
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const eur = n => n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- Texte ---------- */
+const SCHULTE_Q = ['Annahmeschluss wartet nicht!', 'Wer nicht zahlt, wird rot markiert!', 'Der Eimer wird auch nicht leichter!',
+  'Diese Woche knallt’s, ich spür’s!', 'Jeder Euro zählt! Außer deiner.', 'Die Excel vergisst nichts!'];
+const SPECIAL_Q = ['Heute fünf Euro! Keine Ausreden!', 'Bei dem Jackpot zahlt sogar der Geizigste!', 'Fünf Euro für ein neues Leben!', 'Mehr Tipps, mehr Hoffnung, gleiche Chance!'];
+const EXCEL_Q = ['Moment … kurz die Excel pflegen.', 'Zeile 47 … Spalte KW … eingetragen.', 'Erst die Tabelle, dann das Glück.'];
+const LAUGH_Q = ['Hahaha!', 'Schön stolpern! Gleich ist Annahmeschluss.', 'Das trag ich als Ausrede ein.'];
+const MISS_Q = ['Daneben! Der Euro gehört jetzt der Straße.', 'Knapp daneben ist auch vorbei.', 'Wurfquote wie unsere Gewinnquote.'];
+const PAID_Q = ['Danke! Steht in der Tabelle.', 'Eingetragen. Unwiderruflich.'];
+const NOWIN_Q = ['Statistisch gesehen eine Meisterleistung.', 'Die Lottogesellschaft bedankt sich herzlich für die Spende.',
+  'Nächste Woche ganz sicher. Sagt die Hoffnung. Die Statistik schweigt.', 'Chance auf den Jackpot: 1 zu 140 Millionen. Ihr bleibt dran.',
+  'Immerhin ist die Excel-Tabelle jetzt eine Zeile länger.'];
+const SPEECH = {
+  frau: ['Schon WIEDER Lotto?!', 'Der Rasen mäht sich nicht von allein!', 'Wir wollten doch sparen!'],
+  kumpel: ['Ich zahl nächste Woche doppelt!', 'Leg mal für mich aus!', 'Hab nur ’nen Fuffi!'],
+  rentner: ['Junger Mann, ich hab Zeit.', 'Früher gab’s noch 6 aus 49!', 'Nicht drängeln!']
+};
+const LAENDER = ['Finnland', 'Dänemark', 'Norwegen', 'Kroatien', 'Spanien', 'Schweden', 'Tschechien', 'Bayern'];
+const QUOTEN = { '5+1': 600000, '5+0': 150000, '4+2': 4500, '4+1': 250, '3+2': 90, '4+0': 80,
+  '2+2': 20, '3+1': 17, '3+0': 14, '1+2': 10, '2+1': 8.5 };
+
+/* ---------- Statistik ---------- */
+const STATS_KEY = 'tgs2026-stats';
+let stats = { weeks: 0, paid: 0, schuldner: 0, pot: 0, payout: 0, jackpot: 10 };
+try { const s = JSON.parse(localStorage.getItem(STATS_KEY) || 'null'); if (s) stats = Object.assign(stats, s); } catch (e) {}
+function saveStats() { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) {} }
+function isoWeek(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return Math.ceil(((t - y0) / 86400000 + 1) / 7);
+}
+const BASE_KW = isoWeek(new Date());
+let curKW = BASE_KW;
+let week = { special: false, need: 1, paid: 0, jackpot: stats.jackpot, resolved: true, jpMsg: '' };
+
+/* ---------- Audio ---------- */
+let ac = null;
+function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } } return ac; }
+function beep(f, d, type, v, slide) {
+  const a = audio(); if (!a) return;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'sine'; o.frequency.setValueAtTime(f, a.currentTime);
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, a.currentTime + d);
+  g.gain.setValueAtTime(v || .12, a.currentTime); g.gain.exponentialRampToValueAtTime(.001, a.currentTime + d);
+  o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + d);
+}
+const sfx = {
+  coin: () => { beep(1320, .12, 'triangle', .12); setTimeout(() => beep(1760, .2, 'triangle', .1), 70); },
+  bump: () => beep(170, .28, 'square', .1, 55),
+  toss: () => beep(480, .22, 'sine', .08, 950),
+  clank: () => beep(900, .1, 'square', .05, 300),
+  ball: () => beep(720, .09, 'triangle', .08),
+  honk: () => { beep(330, .25, 'square', .08); setTimeout(() => beep(330, .35, 'square', .08), 300); },
+  bell: () => { beep(196, 1.6, 'sine', .16); beep(392, 1.1, 'sine', .05); setTimeout(() => beep(165, 1.6, 'sine', .14), 700); },
+  win: () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, .25, 'triangle', .1), i * 110)),
+  sad: () => [392, 330, 262].forEach((f, i) => setTimeout(() => beep(f, .35, 'sine', .1), i * 220))
+};
+
+/* ---------- Three.js Grundgerüst ---------- */
+const canvas = $('#game');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const SKY = 0xcfe8f5;
+scene.background = new THREE.Color(SKY);
+scene.fog = new THREE.Fog(SKY, 40, 110);
+const camera = new THREE.PerspectiveCamera(70, 1, .1, 230);
+let W = innerWidth, H = innerHeight;
+function resize() {
+  W = innerWidth; H = innerHeight;
+  renderer.setSize(W, H, false);
+  camera.aspect = W / H; camera.fov = W / H < 1 ? 70 : 55; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb6c2d6, .78));
+const sun = new THREE.DirectionalLight(0xffffff, .72);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 18, bottom: -18, near: 1, far: 70 });
+sun.shadow.bias = -.0006;
+scene.add(sun); scene.add(sun.target);
+
+const matCache = {};
+function M(c, opt) {
+  const k = c + (opt ? JSON.stringify(opt) : '');
+  if (!matCache[k]) matCache[k] = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: .82, metalness: 0 }, opt || {}));
+  return matCache[k];
+}
+function mesh(geo, mat, cast) { const m = new THREE.Mesh(geo, mat); m.castShadow = cast !== false; m.receiveShadow = true; return m; }
+function canvasTex(w, h, draw) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 4; return t;
+}
+function texMat(w, h, draw, opt) { return new THREE.MeshStandardMaterial(Object.assign({ map: canvasTex(w, h, draw), roughness: .7 }, opt || {})); }
+function panelBox(w, h, d, front, side, back) { const s = M(side || 0x2f3a5c); return mesh(new THREE.BoxGeometry(w, h, d), [s, s, s, s, front, back || s]); }
+function at(o, x, y, z) { o.position.set(x, y, z); scene.add(o); return o; }
+const FONT = "'Fredoka','Trebuchet MS',sans-serif";
+function fitFont(x, text, maxW, size, weight) {
+  let s = size;
+  do { x.font = `${weight || 700} ${s}px ${FONT}`; s -= 2; } while (x.measureText(text).width > maxW && s > 8);
+}
+function centerText(x, text, cx, cy, maxW, size, color, weight) {
+  x.fillStyle = color; x.textAlign = 'center'; x.textBaseline = 'middle'; fitFont(x, text, maxW, size, weight); x.fillText(text, cx, cy);
+}
+
+/* ---------- Figuren ---------- */
+const legGeo = new THREE.CylinderGeometry(.13, .11, .82, 12); legGeo.translate(0, -.41, 0);
+const armGeo = new THREE.CylinderGeometry(.085, .075, .62, 10); armGeo.translate(0, -.31, 0);
+const shoeGeo = new THREE.BoxGeometry(.2, .13, .34);
+const handGeo = new THREE.SphereGeometry(.095, 10, 8);
+const headGeo = new THREE.SphereGeometry(.26, 20, 16);
+const hairGeo = new THREE.SphereGeometry(.275, 20, 12, 0, Math.PI * 2, 0, Math.PI * .5);
+const eyeGeo = new THREE.SphereGeometry(.035, 8, 6);
+function makePerson(o) {
+  const w = o.w || 1, g = new THREE.Group();
+  const skin = M(o.skin || 0xf1c7a1), shirt = M(o.shirt), pants = M(o.pants || 0x35405f), hairM = M(o.hair || 0x5a3d2b), shoeM = M(0x2a2f3c);
+  const mkLeg = x => { const l = mesh(legGeo, pants); l.position.set(x * w, .88, 0); const s = mesh(shoeGeo, shoeM); s.position.set(0, -.82, -.07); l.add(s); g.add(l); return l; };
+  const legL = mkLeg(-.15), legR = mkLeg(.15);
+  const hip = mesh(new THREE.CylinderGeometry(.3 * w, .3 * w, .2, 14), pants); hip.position.y = .9; g.add(hip);
+  const torso = mesh(new THREE.CylinderGeometry(.33 * w, .3 * w, .66, 16), shirt); torso.position.y = 1.28; g.add(torso);
+  const sh = mesh(new THREE.SphereGeometry(.33 * w, 16, 10), shirt); sh.scale.y = .5; sh.position.y = 1.61; g.add(sh);
+  const neck = mesh(new THREE.CylinderGeometry(.09, .1, .14, 10), skin); neck.position.y = 1.72; g.add(neck);
+  const head = new THREE.Group(); head.position.y = 1.95; g.add(head);
+  head.add(mesh(headGeo, skin));
+  if (!o.bald) { const hair = mesh(hairGeo, hairM); hair.position.y = .02; hair.rotation.x = .28; head.add(hair); }
+  const eyeM = M(0x1f2a48);
+  [-.09, .09].forEach(x => { const e = mesh(eyeGeo, eyeM, false); e.position.set(x, .02, -.235); head.add(e); });
+  const nose = mesh(new THREE.SphereGeometry(.045, 8, 6), skin, false); nose.position.set(0, -.04, -.26); head.add(nose);
+  const mkArm = x => { const a = mesh(armGeo, shirt); a.position.set(x * .4 * w, 1.6, 0); const h = mesh(handGeo, skin); h.position.y = -.66; a.add(h); g.add(a); return a; };
+  const armL = mkArm(-1), armR = mkArm(1);
+  g.scale.setScalar(o.scale || 1);
+  g.userData = { legL, legR, armL, armR, head, torso, hand: armR.children[0], phase: rand(0, 6) };
+  return g;
+}
+function animRun(p, phase, amp, armsFree) {
+  const u = p.userData, a = Math.sin(phase) * amp;
+  u.legL.rotation.x = a; u.legR.rotation.x = -a;
+  if (armsFree !== false) { u.armL.rotation.x = -a * .9; u.armR.rotation.x = a * .9; }
+}
+function animIdle(p, dt) {
+  const u = p.userData, k = Math.min(1, dt * 8);
+  [u.legL, u.legR, u.armL].forEach(l => { l.rotation.x += (0 - l.rotation.x) * k; });
+}
+// Passant am Straßenrand, schräg zur Straße und zum Spieler gedreht
+function makeNPC(o, s, x, z) {
+  const p = makePerson(o);
+  p.rotation.y = s < 0 ? -Math.PI * .75 : Math.PI * .75;
+  at(p, x, .18, z);
+  return p;
+}
+
+/* ---------- Münze & Mettbrötchen ---------- */
+let coinGeo, coinMats;
+function buildCoinAssets() {
+  coinGeo = new THREE.CylinderGeometry(.22, .22, .05, 28); coinGeo.rotateX(Math.PI / 2);
+  const tex = canvasTex(128, 128, x => {
+    x.fillStyle = '#e9bb3c'; x.beginPath(); x.arc(64, 64, 64, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#d6dbe3'; x.beginPath(); x.arc(64, 64, 43, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#6b5a1a'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = `700 52px ${FONT}`; x.fillText('1', 64, 58);
+    x.font = `600 14px ${FONT}`; x.fillText('EURO', 64, 92);
+  });
+  const face = new THREE.MeshStandardMaterial({ map: tex, metalness: .35, roughness: .4 });
+  coinMats = [M(0xd9a92c, { metalness: .5, roughness: .35 }), face, face];
+}
+function makeCoin() { const m = new THREE.Mesh(coinGeo, coinMats); m.castShadow = true; return m; }
+function makeMett() {
+  const g = new THREE.Group();
+  const bun = M(0xe0ad6c), mett = M(0xe7847b), onion = M(0xfaf6ee);
+  const bot = mesh(new THREE.SphereGeometry(.34, 18, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), bun); bot.scale.y = .5; g.add(bot);
+  const m = mesh(new THREE.CylinderGeometry(.36, .34, .11, 20), mett); m.position.y = .05; g.add(m);
+  const top = mesh(new THREE.SphereGeometry(.34, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), bun); top.scale.y = .55; top.position.y = .11; g.add(top);
+  for (let i = 0; i < 6; i++) { const d = mesh(new THREE.SphereGeometry(.035, 6, 5), onion, false); const a = i / 6 * Math.PI * 2; d.position.set(Math.cos(a) * .3, .08, Math.sin(a) * .3); g.add(d); }
+  g.scale.setScalar(1.15);
+  return g;
+}
+
+/* ---------- Hindernisse ---------- */
+function makeObstacle(kind) {
+  const g = new THREE.Group(); let anchor = null, low = false;
+  if (kind === 'rentner') {
+    const p = makePerson({ shirt: 0xcbb68f, pants: 0x7a7f8c, hair: 0xe3e3e3, scale: .92 });
+    p.userData.armL.rotation.x = .9; p.userData.armR.rotation.x = .9;
+    p.rotation.y = Math.PI; g.add(p); anchor = p.userData.head;
+    const fr = M(0xd04a4a), dark = M(0x2a2f3c);
+    const rol = new THREE.Group(); rol.position.set(0, 0, .62);
+    [-.26, .26].forEach(x => {
+      const t = mesh(new THREE.CylinderGeometry(.025, .025, .95, 8), fr); t.position.set(x, .5, 0); rol.add(t);
+      const wh = mesh(new THREE.CylinderGeometry(.08, .08, .05, 12), dark); wh.rotation.z = Math.PI / 2; wh.position.set(x, .08, 0); rol.add(wh);
+    });
+    const bar = mesh(new THREE.CylinderGeometry(.025, .025, .58, 8), fr); bar.rotation.z = Math.PI / 2; bar.position.set(0, .96, 0); rol.add(bar);
+    const bask = mesh(new THREE.BoxGeometry(.48, .22, .28), M(0x9aa4b8)); bask.position.set(0, .55, .03); rol.add(bask);
+    g.add(rol); g.userData.person = p;
+  } else if (kind === 'frau') {
+    const p = makePerson({ shirt: 0xa569c9, pants: 0x30344a, hair: 0x6b3e26 });
+    const lh = mesh(new THREE.BoxGeometry(.52, .62, .16), M(0x6b3e26)); lh.position.set(0, -.2, .17); p.userData.head.add(lh);
+    p.userData.armL.rotation.z = -.55; p.userData.armR.rotation.z = .55;
+    p.rotation.y = Math.PI; g.add(p); anchor = p.userData.head; g.userData.person = p;
+  } else if (kind === 'kumpel') {
+    const p = makePerson({ shirt: 0x37a476, pants: 0x3d4766, hair: 0x2c2c2c });
+    const cap = mesh(new THREE.CylinderGeometry(.28, .28, .1, 18), M(0xe2423b)); cap.position.y = .17; p.userData.head.add(cap);
+    const brim = mesh(new THREE.BoxGeometry(.3, .03, .22), M(0xe2423b)); brim.position.set(0, .13, -.3); p.userData.head.add(brim);
+    p.userData.armR.rotation.z = 2.5; p.userData.wave = true;
+    p.rotation.y = Math.PI; g.add(p); anchor = p.userData.head; g.userData.person = p;
+  } else if (kind === 'pfand') {
+    low = true;
+    const crate = mesh(new THREE.BoxGeometry(.95, .42, .62), M(0x3d72c4)); crate.position.y = .21; g.add(crate);
+    const bottle = M(0x4f9a5c, { roughness: .35 });
+    for (let i = 0; i < 6; i++) { const b = mesh(new THREE.CylinderGeometry(.07, .08, .5, 10), bottle); b.position.set(-.3 + (i % 3) * .3, .6, i < 3 ? -.14 : .14); g.add(b); }
+  } else {
+    low = true;
+    const or = M(0xf08a2c), wh = M(0xffffff);
+    [-.32, .32].forEach(x => {
+      const c = mesh(new THREE.ConeGeometry(.24, .72, 18), or); c.position.set(x, .36, 0); g.add(c);
+      const band = mesh(new THREE.CylinderGeometry(.135, .165, .1, 18), wh); band.position.set(x, .4, 0); g.add(band);
+      const base = mesh(new THREE.BoxGeometry(.5, .05, .5), or); base.position.set(x, .025, 0); g.add(base);
+    });
+  }
+  return { g, anchor, low };
+}
+
+/* ---------- Bus Linie 484 ---------- */
+const hazardMat = new THREE.MeshStandardMaterial({ color: 0xff9a1f, emissive: 0xff8a00, emissiveIntensity: 0 });
+let busDisplayMat;
+function makeBus(frontToPlayer) {
+  const g = new THREE.Group();
+  const white = M(0xf3f5f8), teal = M(0x2a8c9a), glass = M(0x2b3652, { roughness: .25 }), tire = M(0x22252e);
+  const body = mesh(new THREE.BoxGeometry(1.7, 2.6, 9.6), white); body.position.y = 1.65; g.add(body);
+  const band = mesh(new THREE.BoxGeometry(1.72, .5, 9.62), teal); band.position.y = .62; g.add(band);
+  const win = mesh(new THREE.BoxGeometry(1.74, .95, 8.2), glass); win.position.set(0, 2.15, frontToPlayer ? -.5 : .5); g.add(win);
+  const roofU = mesh(new THREE.BoxGeometry(1.3, .28, 3), white); roofU.position.set(0, 3.08, 0); g.add(roofU);
+  [-3.2, 3.2].forEach(z => [-.86, .86].forEach(x => {
+    const t = mesh(new THREE.CylinderGeometry(.42, .42, .3, 16), tire); t.rotation.z = Math.PI / 2; t.position.set(x, .42, z); g.add(t);
+  }));
+  const disp = mesh(new THREE.PlaneGeometry(1.35, .42), busDisplayMat, false); disp.position.set(0, 2.68, 4.81); g.add(disp);
+  const endGlass = mesh(new THREE.PlaneGeometry(frontToPlayer ? 1.55 : 1.3, frontToPlayer ? 1.25 : .75), glass, false);
+  endGlass.position.set(0, frontToPlayer ? 1.75 : 2.05, 4.81); g.add(endGlass);
+  [-.62, .62].forEach(x => { const h = mesh(new THREE.BoxGeometry(.24, .14, .04), hazardMat, false); h.position.set(x, .95, 4.81); g.add(h); });
+  g.userData.disp = disp;
+  return g;
+}
+
+/* ---------- Rheine-Kulisse ---------- */
+const RESERVED = [
+  { s: -1, z0: -38, z1: -74 },    // Emsland-Gymnasium
+  { s: -1, z0: -134, z1: -148 },  // Kirmes-Plakatwand
+  { s: 1, z0: -184, z1: -228 },   // Emsforum
+  { s: -1, z0: -248, z1: -292 },  // St. Dionysius
+  { s: 1, z0: -402, z1: -426 },   // Das Onkel + Seitenstraße
+  { s: 1, z0: -460, z1: -474 }    // Kirmes-Plakatwand
+];
+const BUS_SPOTS = [{ s: 1, z: -104, lane: 2 }, { s: -1, z: -362, lane: 0 }];
+const BOXES = [[1, -22], [-1, -86], [-1, -172], [1, -240], [1, -300], [1, -342], [-1, -392], [-1, -446], [1, -496]];
+const LITFASS = [[1, -160], [-1, -322]];
+const props = [];
+const triggers = [];
+function addTrigger(z, who, anchor, text, fn) { triggers.push({ z, who, anchor, text, fn, done: false }); }
+let gMats = [];
+function graffitiMat(lines, c) {
+  const tex = canvasTex(512, 256, (x, w, h) => {
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineJoin = 'round';
+    const n = lines.length, lh = h / (n + .3);
+    lines.forEach((t, i) => {
+      const y = h / 2 + (i - (n - 1) / 2) * lh * .92;
+      fitFont(x, t, w - 70, n > 1 ? 118 : 196, 700);
+      x.save(); x.translate(w / 2, y); x.rotate(-.06 + i * .07);
+      x.lineWidth = 26; x.strokeStyle = '#1d1b2b'; x.strokeText(t, 0, 0);
+      x.lineWidth = 12; x.strokeStyle = c[1]; x.strokeText(t, 0, 0);
+      const g = x.createLinearGradient(0, -lh / 2, 0, lh / 2); g.addColorStop(0, c[0]); g.addColorStop(1, c[2]);
+      x.fillStyle = g; x.fillText(t, 0, 0);
+      x.restore();
+    });
+    x.fillStyle = c[1];
+    for (let i = 0; i < 7; i++) { const dx = rand(80, w - 80), dy = rand(h * .62, h * .72), dl = rand(14, 46); x.fillRect(dx, dy, 7, dl); x.beginPath(); x.arc(dx + 3.5, dy + dl, 5, 0, Math.PI * 2); x.fill(); }
+    x.fillStyle = '#ffffff';
+    for (let i = 0; i < 6; i++) { x.beginPath(); x.arc(rand(40, w - 40), rand(30, h - 30), 4, 0, Math.PI * 2); x.fill(); }
+  });
+  return new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: .9, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+}
+function graffiti(w, x, y, z, rotY, mat) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * .5), mat || pick(gMats));
+  m.rotation.y = rotY || 0; m.receiveShadow = true; at(m, x, y, z);
+}
+function drawKirmes(x, ox, oy, w, h, portrait) {
+  const g = x.createLinearGradient(0, oy, 0, oy + h); g.addColorStop(0, '#232a66'); g.addColorStop(1, '#7a2f78');
+  x.fillStyle = g; x.fillRect(ox, oy, w, h);
+  const cx = portrait ? ox + w / 2 : ox + w * .76, cy = portrait ? oy + h * .66 : oy + h * .5, r = portrait ? w * .26 : h * .36;
+  x.strokeStyle = '#c9cfe8'; x.lineWidth = 7;
+  x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx - r * .7, cy + r * 1.3); x.moveTo(cx, cy); x.lineTo(cx + r * .7, cy + r * 1.3); x.stroke();
+  x.strokeStyle = '#ffd45c'; x.lineWidth = 6; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.stroke();
+  x.lineWidth = 2;
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); x.stroke(); }
+  const gc = ['#e2423b', '#2fb6a6', '#f4b728', '#8f7bff'];
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; x.fillStyle = gc[i % 4]; x.beginPath(); x.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r + 8, r * .11, 0, Math.PI * 2); x.fill(); }
+  x.fillStyle = '#fff3b0';
+  for (let i = 0; i < 36; i++) { const a = i / 36 * Math.PI * 2; x.beginPath(); x.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 3, 0, Math.PI * 2); x.fill(); }
+  if (portrait) {
+    centerText(x, 'Rheiner', ox + w / 2, oy + h * .09, w * .85, w * .1, '#ffffff', 600);
+    centerText(x, 'Herbstkirmes', ox + w / 2, oy + h * .21, w * .9, w * .17, '#ffd45c', 700);
+    centerText(x, 'Riesenrad & Autoscooter', ox + w / 2, oy + h * .32, w * .85, w * .065, '#ffffff', 500);
+  } else {
+    const tx = ox + w * .3;
+    centerText(x, 'Rheiner', tx, oy + h * .22, w * .5, h * .14, '#ffffff', 600);
+    centerText(x, 'Herbstkirmes', tx, oy + h * .45, w * .55, h * .24, '#ffd45c', 700);
+    centerText(x, 'Riesenrad, Autoscooter,', tx, oy + h * .67, w * .52, h * .085, '#ffffff', 500);
+    centerText(x, 'gebrannte Mandeln', tx, oy + h * .79, w * .52, h * .085, '#ffffff', 500);
+  }
+}
+function buildBillboard(s, z) {
+  const mat = texMat(1024, 512, (x, w, h) => drawKirmes(x, 0, 0, w, h, false));
+  const g = new THREE.Group();
+  [-2.3, 2.3].forEach(px => { const p = mesh(new THREE.CylinderGeometry(.09, .09, 2, 8), M(0x5d6577)); p.position.set(px, 1, 0); g.add(p); });
+  const b = panelBox(6, 3, .2, mat, 0xffffff); b.position.y = 3.5; g.add(b);
+  g.rotation.y = -s * .35;
+  at(g, s * 8, 0, z);
+  return g;
+}
+function buildLitfass(s, z) {
+  const tex = canvasTex(1024, 512, (x, w, h) => { drawKirmes(x, 0, 0, 512, h, true); drawKirmes(x, 512, 0, 512, h, true); });
+  tex.wrapS = THREE.RepeatWrapping; tex.offset.x = .25;
+  const col = mesh(new THREE.CylinderGeometry(.62, .62, 2.6, 32), [new THREE.MeshStandardMaterial({ map: tex, roughness: .7 }), M(0x2f5d50), M(0x2f5d50)]);
+  at(col, s * 4.6, 1.5, z);
+  const cap = mesh(new THREE.SphereGeometry(.7, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2), M(0x2f5d50)); cap.scale.y = .5; at(cap, s * 4.6, 2.82, z);
+  const base = mesh(new THREE.CylinderGeometry(.72, .72, .2, 24), M(0x2f5d50)); at(base, s * 4.6, .28, z);
+  props.push({ s, z });
+}
+function buildStromkasten(s, z) {
+  const b = mesh(new THREE.BoxGeometry(.95, 1.2, .48), M(0xb9bec8)); at(b, s * 5.3, .78, z);
+  graffiti(.9, s * 5.3, .8, z + .25);
+  props.push({ s, z });
+}
+function buildBusStop(b) {
+  const s = b.s, z = b.z + 2, x = s * 5.05;
+  const steel = M(0x5d6577), glassM = new THREE.MeshStandardMaterial({ color: 0x9cc3e6, transparent: true, opacity: .35, roughness: .1 });
+  at(mesh(new THREE.BoxGeometry(1.5, .12, 3.4), steel), x, 2.45, z);
+  at(mesh(new THREE.BoxGeometry(.06, 2.1, 3.2), glassM, false), s * 5.75, 1.3, z);
+  const side = mesh(new THREE.BoxGeometry(1.4, 2.1, .06), M(0xb9bec8)); at(side, x, 1.3, z + 1.65);
+  graffiti(1.3, x, 1.3, z + 1.7);
+  at(mesh(new THREE.BoxGeometry(1.1, .1, .4), M(0x8a6a55)), s * 5.4, .65, z);
+  // Haltestellenschild
+  const pz = b.z + 5.8, px = s * 3.35;
+  at(mesh(new THREE.CylinderGeometry(.05, .05, 3, 8), steel), px, 1.6, pz);
+  const hTex = canvasTex(256, 256, (x, w, h) => {
+    x.fillStyle = '#1d8c4a'; x.beginPath(); x.arc(128, 128, 126, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#f6d000'; x.beginPath(); x.arc(128, 128, 108, 0, Math.PI * 2); x.fill();
+    centerText(x, 'H', 128, 136, 200, 170, '#1d8c4a', 700);
+  });
+  const disc = mesh(new THREE.CircleGeometry(.4, 32), new THREE.MeshStandardMaterial({ map: hTex, side: THREE.DoubleSide }), false);
+  at(disc, px, 2.85, pz + .06);
+  const plate = panelBox(.8, .5, .05, texMat(256, 160, (x, w, h) => {
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h); x.strokeStyle = '#1f2a48'; x.lineWidth = 8; x.strokeRect(4, 4, w - 8, h - 8);
+    centerText(x, 'Linie', w / 2, 42, w * .8, 34, '#1f2a48', 600);
+    centerText(x, '484', w / 2, 108, w * .8, 86, '#1f2a48', 700);
+  }), 0xffffff);
+  at(plate, px, 2.2, pz + .06);
+  props.push({ s, z }, { s, z: pz });
+  const npc = makeNPC({ shirt: 0xf08a2c, pants: 0x34405e, hair: 0x2c2c2c, scale: .95 }, s, s * 4.4, z - .4);
+  addTrigger(z - .4, 'p', npc.userData.head, b.lane === 2 ? 'Die 484 wartet auf niemanden. Wie Schulte.' : 'Fährt die 484 auch zum Jackpot?');
+}
+function buildGym() {
+  const s = -1, z0 = -40, z1 = -72, len = z0 - z1, cz = (z0 + z1) / 2, d = 10, x = s * (6.4 + d / 2), fx = s * 6.36;
+  const wall = M(0xe8dfcf), trim = M(0xc0563f), glass = M(0x6f8fc2, { roughness: .3 });
+  at(mesh(new THREE.BoxGeometry(d, 8, len), wall), x, 4, cz);
+  at(mesh(new THREE.BoxGeometry(d + .4, .45, len + .4), trim), x, 8.2, cz);
+  [3.9, 7.3].forEach(y => at(mesh(new THREE.BoxGeometry(.08, .25, len), trim, false), fx, y, cz));
+  [2.2, 5.6].forEach(y => { for (let zz = z0 - 2; zz > z1 + 1.5; zz -= 3) if (y > 3 || Math.abs(zz - cz) > 2.5) at(mesh(new THREE.BoxGeometry(.1, 1.7, 2.1), glass, false), fx, y, zz); });
+  at(mesh(new THREE.BoxGeometry(.2, 2.6, 3.4), glass, false), fx, 1.3, cz);
+  at(mesh(new THREE.BoxGeometry(1.6, .15, 4.2), trim), s * 5.7, 2.85, cz);
+  const sign = panelBox(3.4, 1.15, .15, texMat(512, 176, (x, w, h) => {
+    x.fillStyle = '#1f3d73'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#c0563f'; x.fillRect(0, h - 22, w, 22);
+    centerText(x, 'Emsland-Gymnasium', w / 2, 70, w * .9, 62, '#ffffff', 700);
+    centerText(x, 'Rheine', w / 2, 125, w * .8, 36, '#cfe0ff', 500);
+  }), 0x1f3d73);
+  at(sign, s * 4.8, 1.9, z0 + 1.2);
+  [3.3, 6.3].forEach(px => at(mesh(new THREE.CylinderGeometry(.06, .06, 1.9, 8), M(0x5d6577)), s * px, .95, z0 + 1.2));
+  props.push({ s, z: z0 + 1.2 });
+  const st = makeNPC({ shirt: 0x6c5ce7, pants: 0x2b3350, hair: 0xb07a3a, scale: .9 }, s, s * 3.8, -52);
+  const bag = mesh(new THREE.BoxGeometry(.42, .5, .2), M(0x2fb6a6)); bag.position.set(0, 1.3, .3); st.add(bag);
+  addTrigger(-52, 'p', st.userData.head, 'Erwartungswert negativ, Herr Schulte!');
+  addTrigger(-60, 's', null, 'Mathe war nie mein Fach. Lotto schon.');
+}
+function buildEmsforum() {
+  const s = 1, z0 = -186, z1 = -226, len = z0 - z1, cz = (z0 + z1) / 2, d = 15, x = s * (6.4 + d / 2), fx = s * 6.33;
+  at(mesh(new THREE.BoxGeometry(d, 9.5, len), M(0xe9ebf0)), x, 4.75, cz);
+  at(mesh(new THREE.BoxGeometry(d + .4, .55, len + .4), M(0x2f3a5c)), x, 9.6, cz);
+  at(mesh(new THREE.BoxGeometry(.12, 2.8, len - 8), M(0x6f8fc2, { roughness: .2 }), false), fx, 1.6, cz);
+  at(mesh(new THREE.BoxGeometry(.12, 1.8, len - 4), M(0x9cc3e6, { roughness: .2 }), false), fx, 5.9, cz);
+  const facade = new THREE.Mesh(new THREE.PlaneGeometry(16, 2.2), texMat(1024, 140, (x, w, h) => {
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h);
+    centerText(x, 'EMSFORUM', w / 2, h / 2 + 4, w * .9, 110, '#1f3d73', 700);
+  }));
+  facade.rotation.y = -s * Math.PI / 2; at(facade, s * 6.25, 8.1, cz);
+  at(mesh(new THREE.BoxGeometry(2.4, .2, 8), M(0x1f3d73)), s * 5.3, 3.3, cz);
+  const py = panelBox(3.2, 1.5, .25, texMat(512, 240, (x, w, h) => {
+    x.fillStyle = '#1f3d73'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#e2423b'; x.fillRect(0, 0, w, 16);
+    centerText(x, 'EMSFORUM', w / 2, 110, w * .88, 96, '#ffffff', 700);
+    centerText(x, 'Einkaufszentrum', w / 2, 185, w * .8, 40, '#cfe0ff', 500);
+  }), 0x1f3d73);
+  at(py, s * 4.9, 4.4, z0 + .8);
+  at(mesh(new THREE.BoxGeometry(.4, 3.7, .3), M(0x5d6577)), s * 4.9, 1.85, z0 + .8);
+  props.push({ s, z: z0 + .8 });
+  makeNPC({ shirt: 0xf4d0e0, pants: 0x5d6577, hair: 0x3a2a20 }, s, s * 4.2, cz + 3);
+  addTrigger(-198, 's', null, 'Nach dem Jackpot kauf ich das Emsforum!');
+}
+function prism(len, width, height, mat) {
+  const r = width / 1.732, geo = new THREE.CylinderGeometry(r, r, len, 3);
+  geo.rotateX(-Math.PI / 2);
+  const m = mesh(geo, mat); m.scale.y = height / (1.5 * r); m.userData.base = .5 * r * m.scale.y;
+  return m;
+}
+function buildChurch() {
+  const s = -1, z0 = -250, stone = M(0xd8c6a2), slate = M(0x55606f), dark = M(0x3d5288, { roughness: .3 });
+  const tw = 5.5, tx = s * (6.8 + tw / 2), tz = z0 - tw / 2, th = 24;
+  at(mesh(new THREE.BoxGeometry(tw, th, tw), stone), tx, th / 2, tz);
+  at(mesh(new THREE.BoxGeometry(tw + .4, .5, tw + .4), stone), tx, th, tz);
+  const spGeo = new THREE.ConeGeometry(tw * .7071 * 1.02, 13, 4); spGeo.rotateY(Math.PI / 4);
+  at(mesh(spGeo, slate), tx, th + 6.5, tz);
+  [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([a, b]) => at(mesh(new THREE.ConeGeometry(.35, 2.2, 8), stone), tx + a * (tw / 2 - .2), th + 1.3, tz + b * (tw / 2 - .2)));
+  const clock = canvasTex(256, 256, (x) => {
+    x.fillStyle = '#f7f2e6'; x.beginPath(); x.arc(128, 128, 124, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = '#2b2f3a'; x.lineWidth = 8; x.stroke();
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; x.lineWidth = i % 3 ? 5 : 10; x.beginPath(); x.moveTo(128 + Math.sin(a) * 96, 128 - Math.cos(a) * 96); x.lineTo(128 + Math.sin(a) * 112, 128 - Math.cos(a) * 112); x.stroke(); }
+    // fünf vor zwölf
+    x.lineCap = 'round'; x.lineWidth = 12; x.beginPath(); x.moveTo(128, 128); x.lineTo(128 + Math.sin(-.04) * 60, 128 - Math.cos(-.04) * 60); x.stroke();
+    x.lineWidth = 7; x.beginPath(); x.moveTo(128, 128); x.lineTo(128 + Math.sin(-Math.PI / 6) * 96, 128 - Math.cos(-Math.PI / 6) * 96); x.stroke();
+  });
+  const clockMat = new THREE.MeshStandardMaterial({ map: clock });
+  const c1 = mesh(new THREE.CircleGeometry(1.15, 32), clockMat, false); at(c1, tx, 18, z0 + .02);
+  const c2 = mesh(new THREE.CircleGeometry(1.15, 32), clockMat, false); c2.rotation.y = -s * Math.PI / 2; at(c2, tx - s * (tw / 2 + .02), 18, tz);
+  at(mesh(new THREE.BoxGeometry(1.1, 2.4, .1), M(0x2b2f3a), false), tx, 21.6, z0 + .02);
+  at(mesh(new THREE.BoxGeometry(.1, 2.4, 1.1), M(0x2b2f3a), false), tx - s * (tw / 2 + .02), 21.6, tz);
+  at(mesh(new THREE.BoxGeometry(1.8, 3.2, .12), M(0x5a3d2b), false), tx, 1.6, z0 + .02);
+  at(mesh(new THREE.BoxGeometry(.8, 4.5, .12), dark, false), tx, 9, z0 + .02);
+  const nl = 35, nw = 11, nx = s * (6.8 + nw / 2), nz = z0 - tw - nl / 2, nh = 11;
+  at(mesh(new THREE.BoxGeometry(nw, nh, nl), stone), nx, nh / 2, nz);
+  const roof = prism(nl, nw + .4, 7.5, slate); at(roof, nx, nh + roof.userData.base, nz);
+  const face = s * -6.78;
+  for (let zz = z0 - tw - 3; zz > nz - nl / 2 + 2; zz -= 5) {
+    at(mesh(new THREE.BoxGeometry(.1, 6.4, 1.6), dark, false), face, 5.4, zz);
+    at(mesh(new THREE.BoxGeometry(.7, 8, .8), stone), s * 6.5, 4, zz - 2.5);
+  }
+  const plaque = panelBox(2.4, 1.1, .25, texMat(512, 236, (x, w, h) => {
+    x.fillStyle = '#e8dcc0'; x.fillRect(0, 0, w, h);
+    x.strokeStyle = '#8a7650'; x.lineWidth = 10; x.strokeRect(10, 10, w - 20, h - 20);
+    centerText(x, 'Stadtkirche', w / 2, 80, w * .8, 50, '#4a3c22', 500);
+    centerText(x, 'St. Dionysius', w / 2, 150, w * .86, 70, '#4a3c22', 700);
+  }), 0xd8c6a2);
+  at(plaque, s * 5, 1.25, z0 + 3);
+  at(mesh(new THREE.BoxGeometry(2, .6, .5), stone), s * 5, .45, z0 + 3);
+  props.push({ s, z: z0 + 3 });
+  addTrigger(-256, 's', null, 'Kurzes Stoßgebet für die Zahlen!', () => sfx.bell());
+}
+function buildOnkel() {
+  const s = 1, z0 = -402, z1 = -413, w = z0 - z1, cz = (z0 + z1) / 2, d = 8, x = s * (6.2 + d / 2), fx = s * 6.15, h = 6.4;
+  const brick = M(0x8e4b3c), warm = M(0xffd27a, { emissive: 0x8a5a10, emissiveIntensity: .7, roughness: .4 }), wood = M(0x5a3d2b);
+  at(mesh(new THREE.BoxGeometry(d, h, w), brick), x, h / 2, cz);
+  const roof = prism(w + .4, d + .4, 3.2, M(0x4a3a35)); at(roof, x, h + roof.userData.base, cz);
+  at(mesh(new THREE.BoxGeometry(.12, .35, w), M(0x2c5e45), false), fx, 2.75, cz);
+  [-403.8, -407].forEach(zz => at(mesh(new THREE.BoxGeometry(.1, 1.6, 2.4), warm, false), fx, 1.45, zz));
+  at(mesh(new THREE.BoxGeometry(.1, 2.2, 1.1), wood, false), fx, 1.1, -410.2);
+  at(mesh(new THREE.BoxGeometry(2.6, 1.6, .1), warm, false), x - s * 1.5, 1.45, z1 - .05);
+  [-404, -407.5, -411].forEach(zz => at(mesh(new THREE.BoxGeometry(.1, 1.2, 1), M(0x7f9ccf), false), fx, 4.4, zz));
+  // Ausleger-Schild
+  const signMat = texMat(384, 256, (x, w, h) => {
+    x.fillStyle = '#234a3a'; x.fillRect(0, 0, w, h);
+    x.strokeStyle = '#e9bb3c'; x.lineWidth = 10; x.strokeRect(8, 8, w - 16, h - 16);
+    centerText(x, 'Das Onkel', w / 2, 92, w * .84, 74, '#f7e7c3', 700);
+    centerText(x, 'Eckkneipe', w / 2, 152, w * .7, 34, '#e9bb3c', 500);
+    x.fillStyle = '#e9bb3c'; x.fillRect(w / 2 - 26, 182, 44, 50); x.fillStyle = '#ffffff'; x.fillRect(w / 2 - 28, 176, 48, 14);
+    x.strokeStyle = '#e9bb3c'; x.lineWidth = 6; x.beginPath(); x.arc(w / 2 + 22, 206, 14, -Math.PI / 2, Math.PI / 2); x.stroke();
+  });
+  at(mesh(new THREE.BoxGeometry(1.3, .07, .07), M(0x2b2f3a)), s * 5.5, 4.05, -403);
+  const sign = mesh(new THREE.BoxGeometry(1.6, 1.07, .08), [M(0x234a3a), M(0x234a3a), M(0x234a3a), M(0x234a3a), signMat, signMat]);
+  at(sign, s * 5.3, 3.4, -403);
+  // Kundenstopper
+  const chalk = texMat(256, 330, (x, w, h) => {
+    x.fillStyle = '#8a6a45'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#26332d'; x.fillRect(12, 12, w - 24, h - 24);
+    centerText(x, 'Jeden 1. Freitag', w / 2, 46, w * .84, 30, '#ffffff', 500);
+    centerText(x, 'im Monat', w / 2, 82, w * .8, 28, '#ffffff', 500);
+    centerText(x, 'Cocktailparty!', w / 2, 136, w * .88, 42, '#ff9ecb', 700);
+    centerText(x, 'Alle Cocktails', w / 2, 192, w * .8, 30, '#ffffff', 500);
+    centerText(x, 'nur 3 €', w / 2, 244, w * .8, 58, '#ffe14d', 700);
+    x.strokeStyle = '#9be5bd'; x.lineWidth = 4;
+    x.beginPath(); x.moveTo(w / 2 - 24, 278); x.lineTo(w / 2 + 24, 278); x.lineTo(w / 2, 300); x.closePath(); x.moveTo(w / 2, 300); x.lineTo(w / 2, 316); x.moveTo(w / 2 - 12, 316); x.lineTo(w / 2 + 12, 316); x.stroke();
+  });
+  const stop = new THREE.Group();
+  const fr = mesh(new THREE.BoxGeometry(1.1, 1.42, .05), [wood, wood, wood, wood, chalk, wood]); fr.rotation.x = -.16; fr.position.set(0, .72, .12); stop.add(fr);
+  const bk = mesh(new THREE.BoxGeometry(1.1, 1.42, .05), wood); bk.rotation.x = .16; bk.position.set(0, .72, -.12); stop.add(bk);
+  at(stop, s * 4.3, .18, -398.5);
+  props.push({ s, z: -398.5 });
+  // Seitenstraße an der Ecke
+  const side = mesh(new THREE.PlaneGeometry(40, 8), M(0x8f98ad), false); side.rotation.x = -Math.PI / 2; at(side, s * 23, .2, -418.5);
+  const wirt = makeNPC({ shirt: 0xf5f5f5, pants: 0x2b2f3a, bald: true, w: 1.15 }, s, s * 5.3, -409);
+  const apron = mesh(new THREE.BoxGeometry(.6, .7, .05), M(0x234a3a)); apron.position.set(0, 1.05, -.33); wirt.add(apron);
+  addTrigger(-407, 'p', wirt.userData.head, 'Jeden ersten Freitag im Monat: Cocktailparty! Alle Cocktails 3 €!');
+  addTrigger(-414, 's', null, 'Gewinne werden im Onkel verteilt. In Cocktails.');
+}
+
+let player, schulte, bucket, bucketFill, laptop, ring, posterCtx, posterTex;
+function drawPoster(mio) {
+  const x = posterCtx, w = 256, h = 320, hot = mio >= SPECIAL_JP;
+  x.fillStyle = hot ? '#fff4cc' : '#ffffff'; x.fillRect(0, 0, w, h);
+  x.fillStyle = '#e2423b'; x.fillRect(0, 0, w, 70);
+  x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  x.fillStyle = '#ffffff'; x.font = `700 44px ${FONT}`; x.fillText('JACKPOT', w / 2, 52);
+  x.fillStyle = '#1f2a48'; x.font = `700 96px ${FONT}`; x.fillText(String(mio), w / 2, 170);
+  x.font = `600 46px ${FONT}`; x.fillText('Mio. €', w / 2, 230);
+  x.font = `500 24px ${FONT}`; x.fillStyle = '#5b6687'; x.fillText(hot ? 'Heute 5 € pro Kopf!' : 'Diesmal bestimmt.', w / 2, 290);
+  posterTex.needsUpdate = true;
+}
+function buildWorld() {
+  busDisplayMat = new THREE.MeshBasicMaterial({ map: canvasTex(256, 80, (x, w, h) => {
+    x.fillStyle = '#141414'; x.fillRect(0, 0, w, h);
+    centerText(x, '484', 70, h / 2 + 3, 120, 60, '#ffa21a', 700);
+    centerText(x, 'Rheine', 180, h / 2 + 3, 130, 34, '#ffa21a', 600);
+  }) });
+  gMats = [
+    graffitiMat(['DDT'], ['#ffe14d', '#e2423b', '#ff8a1f']),
+    graffitiMat(['DUTUM', 'DOWNTOWN'], ['#7cf0ff', '#6a3cc9', '#2f6fd6']),
+    graffitiMat(['DDT'], ['#b6ff6a', '#1d8c4a', '#2fb6a6']),
+    graffitiMat(['DUTUM', 'DOWNTOWN'], ['#ffb3e1', '#e2423b', '#8f3bd1'])
+  ];
+  const ground = mesh(new THREE.PlaneGeometry(90, L + 260), M(0xcfe3c4), false);
+  ground.rotation.x = -Math.PI / 2; ground.position.z = -L / 2; scene.add(ground);
+  const road = mesh(new THREE.PlaneGeometry(6, L + 260), M(0x8f98ad), false);
+  road.rotation.x = -Math.PI / 2; road.position.set(0, .015, -L / 2); scene.add(road);
+  [-1, 1].forEach(s => {
+    const sw = mesh(new THREE.BoxGeometry(2.8, .18, L + 260), M(0xebe4d7), false);
+    sw.position.set(s * 4.4, .09, -L / 2); scene.add(sw);
+  });
+  const dummy = new THREE.Object3D(), col = new THREE.Color();
+  const dashes = [];
+  for (let z = 14; z > -L - 20; z -= 6) dashes.push([-.85, z], [.85, z]);
+  const dm = new THREE.InstancedMesh(new THREE.BoxGeometry(.12, .02, 2.4), M(0xffffff), dashes.length);
+  dashes.forEach((d, i) => { dummy.position.set(d[0], .03, d[1]); dummy.updateMatrix(); dm.setMatrixAt(i, dummy.matrix); });
+  dm.frustumCulled = false; scene.add(dm);
+
+  // Rheine-Landmarken
+  buildGym(); buildEmsforum(); buildChurch(); buildOnkel();
+  buildBillboard(-1, -141); buildBillboard(1, -467);
+  addTrigger(-142, 's', null, 'Vom Gewinn: Freifahrt auf dem Riesenrad!');
+  LITFASS.forEach(([s, z]) => buildLitfass(s, z));
+  BOXES.forEach(([s, z]) => buildStromkasten(s, z));
+  BUS_SPOTS.forEach(buildBusStop);
+
+  // Häuser
+  const pastel = [0xf6c6b6, 0xbfdac9, 0xf2df9f, 0xc9c6ee, 0xa9d3ea, 0xf4d0e0];
+  const roofs = [0x6f7fa6, 0xb2675e, 0x5f6b7d, 0x8a6f5e];
+  const houses = [];
+  [-1, 1].forEach(s => {
+    let z = 16;
+    while (z > -L - 70) {
+      const w = rand(5, 8);
+      const r = RESERVED.find(r => r.s === s && z - w < r.z0 && z > r.z1);
+      if (r) { z = r.z1 - .6; continue; }
+      const d = rand(4.5, 6.5), h = rand(3.6, 7.4);
+      houses.push({ s, x: s * (6.2 + d / 2), z: z - w / 2, w, d, h, rh: rand(1.3, 2.4) });
+      z -= w + rand(.8, 2.4);
+    }
+  });
+  const box = new THREE.BoxGeometry(1, 1, 1);
+  const hm = new THREE.InstancedMesh(box, new THREE.MeshStandardMaterial({ roughness: .9 }), houses.length);
+  const roofGeo = new THREE.ConeGeometry(1, 1, 4); roofGeo.rotateY(Math.PI / 4);
+  const rm = new THREE.InstancedMesh(roofGeo, new THREE.MeshStandardMaterial({ roughness: .85 }), houses.length);
+  const wins = [];
+  houses.forEach((hs, i) => {
+    dummy.position.set(hs.x, hs.h / 2, hs.z); dummy.scale.set(hs.d, hs.h, hs.w); dummy.updateMatrix();
+    hm.setMatrixAt(i, dummy.matrix); hm.setColorAt(i, col.setHex(pick(pastel)));
+    dummy.position.set(hs.x, hs.h + hs.rh / 2, hs.z); dummy.scale.set(hs.d * .7071 * 1.08, hs.rh, hs.w * .7071 * 1.08); dummy.updateMatrix();
+    rm.setMatrixAt(i, dummy.matrix); rm.setColorAt(i, col.setHex(pick(roofs)));
+    const n = Math.max(2, Math.floor(hs.w / 1.9)), fx = hs.s * 6.17;
+    for (let k = 0; k < n; k++) {
+      const wz = hs.z - hs.w / 2 + (k + .5) * hs.w / n;
+      if (k === 0) wins.push([fx, 1, wz, 1.9, .95, 0x8a6a55]);
+      else wins.push([fx, 1.5, wz, 1.05, .8, 0x7f9ccf]);
+      if (hs.h > 5) wins.push([fx, 3.6, wz, 1.05, .8, 0x7f9ccf]);
+    }
+    // Graffiti an der Giebelseite, die zum Spieler zeigt
+    if (Math.random() < .28) graffiti(hs.d * .8, hs.x, rand(1.2, 1.8), hs.z + hs.w / 2 + .03);
+  });
+  hm.castShadow = true; hm.receiveShadow = true; hm.frustumCulled = false; scene.add(hm);
+  rm.castShadow = true; rm.frustumCulled = false; scene.add(rm);
+  const wm = new THREE.InstancedMesh(box, new THREE.MeshStandardMaterial({ roughness: .5 }), wins.length);
+  wins.forEach((w, i) => { dummy.position.set(w[0], w[1] + w[3] / 2 - .5, w[2]); dummy.scale.set(.08, w[3], w[4]); dummy.updateMatrix(); wm.setMatrixAt(i, dummy.matrix); wm.setColorAt(i, col.setHex(w[5])); });
+  wm.frustumCulled = false; scene.add(wm);
+  // Bäume, nicht direkt an Haltestellen und Schildern
+  const trees = [];
+  [-1, 1].forEach(s => { for (let z = 6; z > -L - 40; z -= rand(11, 16)) if (!props.some(p => p.s === s && Math.abs(p.z - z) < 3.5)) trees.push([s * 4.9, z, rand(.8, 1.1)]); });
+  const tm = new THREE.InstancedMesh(new THREE.CylinderGeometry(.11, .15, 1.5, 8), M(0x9a7458), trees.length);
+  const cm = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 16, 12), new THREE.MeshStandardMaterial({ roughness: .9 }), trees.length);
+  const greens = [0x8cc58a, 0x79b67f, 0xa3cf8e];
+  trees.forEach((t, i) => {
+    dummy.position.set(t[0], .75, t[1]); dummy.scale.set(1, 1, 1); dummy.updateMatrix(); tm.setMatrixAt(i, dummy.matrix);
+    dummy.position.set(t[0], 1.9 * t[2] + .4, t[1]); dummy.scale.setScalar(.95 * t[2]); dummy.updateMatrix(); cm.setMatrixAt(i, dummy.matrix);
+    cm.setColorAt(i, col.setHex(pick(greens)));
+  });
+  tm.castShadow = cm.castShadow = true; tm.frustumCulled = cm.frustumCulled = false; scene.add(tm, cm);
+  buildKiosk();
+}
+function buildActors() {
+  player = makePerson({ shirt: 0xe2423b, pants: 0x34405e, hair: 0x8a5a35 });
+  scene.add(player);
+  schulte = makePerson({ shirt: 0x2f6fd6, pants: 0x2b3350, hair: 0x3a2a20, w: 1.25, scale: 1.15 });
+  scene.add(schulte);
+  const metal = new THREE.MeshStandardMaterial({ color: 0xaeb7c6, metalness: .35, roughness: .45, side: THREE.DoubleSide });
+  bucket = new THREE.Group();
+  bucket.add(mesh(new THREE.CylinderGeometry(.3, .24, .46, 24, 1, true), metal));
+  const bot = mesh(new THREE.CircleGeometry(.24, 24), metal); bot.rotation.x = -Math.PI / 2; bot.position.y = -.23; bucket.add(bot);
+  const rim = mesh(new THREE.TorusGeometry(.3, .025, 8, 24), metal); rim.rotation.x = Math.PI / 2; rim.position.y = .23; bucket.add(rim);
+  const handle = mesh(new THREE.TorusGeometry(.3, .018, 6, 20, Math.PI), metal); handle.position.y = .23; bucket.add(handle);
+  bucketFill = mesh(new THREE.CylinderGeometry(.285, .285, .04, 24), M(0xe9bb3c, { metalness: .5, roughness: .35 })); bucketFill.position.y = .14; bucket.add(bucketFill);
+  for (let i = 0; i < 6; i++) { const c = makeCoin(); c.scale.setScalar(.5); c.position.set(rand(-.17, .17), .19, rand(-.17, .17)); c.rotation.set(rand(-1.9, -1.2), rand(0, 3), 0); bucket.add(c); }
+  bucket.position.set(.66, .6, 0);
+  schulte.add(bucket);
+  schulte.userData.armR.rotation.z = .18;
+  laptop = new THREE.Group();
+  const xlTex = canvasTex(128, 96, (x, w, h) => {
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#1f7a45'; x.fillRect(0, 0, w, 16);
+    x.strokeStyle = '#c9cfdb'; x.lineWidth = 1;
+    for (let gx = 0; gx <= w; gx += 21) { x.beginPath(); x.moveTo(gx, 16); x.lineTo(gx, h); x.stroke(); }
+    for (let gy = 16; gy <= h; gy += 10) { x.beginPath(); x.moveTo(0, gy); x.lineTo(w, gy); x.stroke(); }
+    x.fillStyle = '#f6b2ad'; x.fillRect(22, 46, 20, 9);
+  });
+  const lb = mesh(new THREE.BoxGeometry(.5, .03, .34), M(0x5d6577)); laptop.add(lb);
+  const g = M(0x5d6577);
+  const scr = new THREE.Mesh(new THREE.BoxGeometry(.5, .34, .02), [g, g, g, g, g, new THREE.MeshBasicMaterial({ map: xlTex })]);
+  scr.position.set(0, .17, -.16); scr.rotation.x = -.25; laptop.add(scr);
+  laptop.position.set(-.8, 1.3, -.25); laptop.rotation.y = Math.PI;
+  laptop.visible = false; schulte.add(laptop);
+  ring = new THREE.Mesh(new THREE.RingGeometry(.55, .78, 32), new THREE.MeshBasicMaterial({ color: 0x23945f, transparent: true, opacity: .75 }));
+  ring.rotation.x = -Math.PI / 2; ring.visible = false; scene.add(ring);
+}
+function buildKiosk() {
+  const g = new THREE.Group(); g.position.set(0, 0, -L - 4.4);
+  const body = mesh(new THREE.BoxGeometry(4.8, 3, 3), M(0xf6f1e7)); body.position.y = 1.5; g.add(body);
+  const roof = mesh(new THREE.BoxGeometry(5.2, .25, 3.4), M(0x2f3a5c)); roof.position.y = 3.12; g.add(roof);
+  const stripes = canvasTex(256, 32, (x, w, h) => { for (let i = 0; i < 8; i++) { x.fillStyle = i % 2 ? '#ffffff' : '#e2423b'; x.fillRect(i * 32, 0, 32, h); } });
+  const awning = mesh(new THREE.BoxGeometry(4.9, .1, 1.4), new THREE.MeshStandardMaterial({ map: stripes, roughness: .8 }));
+  awning.position.set(0, 2.5, 2); awning.rotation.x = .28; g.add(awning);
+  const signTex = canvasTex(512, 112, (x, w, h) => {
+    x.fillStyle = '#e2423b'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#f4b728'; x.beginPath(); x.arc(60, h / 2, 34, 0, Math.PI * 2); x.fill();
+    centerText(x, 'LOTTO-BÜDCHEN', w / 2 + 30, h / 2 + 4, w - 130, 70, '#ffffff', 700);
+  });
+  const sm = M(0xe2423b);
+  const sign = mesh(new THREE.BoxGeometry(4.4, .95, .2), [sm, sm, sm, sm, new THREE.MeshStandardMaterial({ map: signTex, roughness: .6 }), sm]);
+  sign.position.set(0, 3.75, 1.3); g.add(sign);
+  const win = mesh(new THREE.BoxGeometry(3.2, 1.2, .06), M(0x9cc3e6, { roughness: .2 }), false); win.position.set(0, 1.85, 1.52); g.add(win);
+  const counter = mesh(new THREE.BoxGeometry(3.6, .14, .55), M(0xd0a46a)); counter.position.set(0, 1.18, 1.75); g.add(counter);
+  const clerk = makePerson({ shirt: 0xf4b728, pants: 0x3a3a3a, hair: 0x9a9a9a }); clerk.rotation.y = Math.PI; clerk.position.set(.6, 0, 1.05); g.add(clerk);
+  const c = document.createElement('canvas'); c.width = 256; c.height = 320; posterCtx = c.getContext('2d');
+  posterTex = new THREE.CanvasTexture(c); posterTex.anisotropy = 4;
+  drawPoster(stats.jackpot);
+  const pm = M(0xffffff);
+  const poster = mesh(new THREE.BoxGeometry(.9, 1.15, .06), [pm, pm, pm, pm, new THREE.MeshStandardMaterial({ map: posterTex }), pm]);
+  poster.position.set(2.9, .75, 2.4); poster.rotation.x = -.18; poster.rotation.y = -.35; g.add(poster);
+  scene.add(g);
+}
+
+/* ---------- Spielzustand ---------- */
+let state = 'menu';
+let P, S, spawnZ, shake = 0;
+const obstacles = [], pickups = [], projectiles = [];
+function resetActors() {
+  P = { z: 0, x: 0, y: 0, lane: 1, speed: 0, stun: 0, boost: 0, jumpT: -1, ammo: 1, throwAnim: 0, phase: 0 };
+  S = { z: -6, x: 0, lane: 1, speed: 0, excel: 0, nextExcel: rand(7, 10), nextDrop: rand(3, 4.5), nextLane: rand(3, 5), nextQuip: rand(3, 5),
+    finished: false, warned: false, sprint: false, phase: 0 };
+  schulte.rotation.y = 0; laptop.visible = false; bucketFill.position.y = .14;
+}
+function clearDynamic() {
+  [obstacles, pickups, projectiles].forEach(arr => { arr.forEach(o => scene.remove(o.m)); arr.length = 0; });
+  clearBubbles();
+}
+function addBuses() {
+  BUS_SPOTS.forEach(b => {
+    const g = makeBus(b.lane === 0); g.position.set(LANES[b.lane], 0, b.z); scene.add(g);
+    obstacles.push({ m: g, kind: 'bus', lane: b.lane, z: b.z, low: false, len: 4.8, anchor: g.userData.disp, speech: null, spoke: false, hit: false, knock: 0, cool: 0 });
+  });
+}
+function startRun(forceSpecial) {
+  audio();
+  if (!week.resolved) resolveWeek(false);
+  clearDynamic(); resetActors();
+  const special = forceSpecial === true || stats.jackpot >= SPECIAL_JP;
+  week = { special, need: special ? 5 : 1, paid: 0, jackpot: special ? Math.max(SPECIAL_JP, stats.jackpot) : stats.jackpot, resolved: false, jpMsg: '' };
+  drawPoster(week.jackpot);
+  bucket.scale.setScalar(special ? 1.3 : 1);
+  S.z = -16; spawnZ = -34;
+  addBuses();
+  triggers.forEach(t => { t.done = false; });
+  curKW = ((BASE_KW - 1 + stats.weeks) % 52) + 1;
+  state = 'run';
+  showScreen(null); $('#hud').classList.add('on');
+  $('#hudSpecialRow').classList.toggle('hidden', !special);
+  if (special) {
+    showBanner('Jackpot-Woche!', `${week.jackpot} Mio. im Pott. Heute 5 € pro Person.`);
+    say(schulte.userData.head, 'Heute fünf Euro! Keine Ausreden!', 2.4);
+  } else say(schulte.userData.head, 'Annahmeschluss wartet nicht!', 2);
+}
+
+/* ---------- Spawnen ---------- */
+function spawnRow(z) {
+  const bus = BUS_SPOTS.find(b => Math.abs(b.z - z) < 8);
+  let n = Math.random() < .35 ? 2 : 1;
+  let pool = [0, 1, 2];
+  if (bus) { n = 1; pool = pool.filter(l => l !== bus.lane); }
+  const lanes = pool.sort(() => Math.random() - .5).slice(0, n);
+  lanes.forEach(l => {
+    const r = Math.random();
+    const kind = r < .22 ? 'rentner' : r < .38 ? 'frau' : r < .62 ? 'pfand' : r < .86 ? 'kegel' : 'kumpel';
+    const o = makeObstacle(kind);
+    o.g.position.set(LANES[l], 0, z); scene.add(o.g);
+    const speech = SPEECH[kind] && (kind !== 'rentner' || Math.random() < .6) ? SPEECH[kind] : null;
+    obstacles.push({ m: o.g, kind, lane: l, z, low: o.low, anchor: o.anchor, speech, spoke: false, hit: false, knock: 0 });
+  });
+  const free = pool.filter(l => !lanes.includes(l));
+  if (free.length && Math.random() < .2) addPickup('mett', pick(free), z - 5);
+}
+function spawnAhead() {
+  while (spawnZ > P.z - 110 && spawnZ > -L + 22) { spawnRow(spawnZ); spawnZ -= rand(11, 17); }
+}
+function addPickup(kind, lane, z, y) {
+  const m = kind === 'coin' ? makeCoin() : makeMett();
+  if (kind === 'coin') m.scale.setScalar(1.25);
+  m.position.set(LANES[lane], y || .45, z); scene.add(m);
+  pickups.push({ m, kind, lane, z, vy: 0, falling: !!y });
+}
+function dropCoin() {
+  const b = new THREE.Vector3(); bucket.getWorldPosition(b);
+  addPickup('coin', S.lane, S.z + 1.2, b.y + .3);
+  sfx.clank();
+}
+
+/* ---------- Schulte-KI ---------- */
+function laneBlocked(l, z, r) { return obstacles.some(o => o.lane === l && Math.abs(o.z - z) < r + (o.len || 0)); }
+function schulteAI(dt) {
+  const ahead = obstacles.find(o => {
+    if (o.lane !== S.lane) return false;
+    const len = o.len || 0, front = o.z + len, back = o.z - len;
+    return S.z > back - .5 && S.z - front < 7.5;
+  });
+  if (ahead) {
+    let opts = [S.lane - 1, S.lane + 1].filter(l => l >= 0 && l < 3 && !laneBlocked(l, ahead.z, 3.2));
+    if (!opts.length) opts = [0, 1, 2].filter(l => l !== S.lane && !laneBlocked(l, ahead.z, 3.2));
+    if (opts.length) S.lane = pick(opts);
+  }
+  S.nextLane -= dt;
+  if (S.nextLane <= 0) {
+    S.nextLane = rand(2.4, 5.5);
+    const flying = projectiles.some(p => p.phase === 'fly');
+    const opts = [S.lane - 1, S.lane + 1].filter(l => l >= 0 && l < 3 && !laneBlocked(l, S.z - 6, 7));
+    if (opts.length && !flying) S.lane = pick(opts);
+  }
+}
+
+/* ---------- Aktionen ---------- */
+function move(d) { if (state === 'run') P.lane = clamp(P.lane + d, 0, 2); }
+function jump() { if (state === 'run' && P.jumpT < 0) P.jumpT = 0; }
+function throwCoin() {
+  if (state !== 'run') return;
+  if (projectiles.some(p => p.phase === 'fly')) return;
+  if (P.ammo <= 0) { toast('Kein Euro mehr. Schultes Eimer verliert ab und zu welche.'); return; }
+  const gap = P.z - S.z;
+  if (gap > RANGE) { toast('Zu weit weg! Ran an den Schulte.'); return; }
+  P.ammo--; P.throwAnim = .35; sfx.toss();
+  const from = new THREE.Vector3(); player.userData.hand.getWorldPosition(from); from.y += .3;
+  const T = clamp(.38 + gap * .035, .4, .7);
+  const to = new THREE.Vector3(); bucket.getWorldPosition(to); to.y += .25; to.z -= S.speed * T;
+  const m = makeCoin(); m.position.copy(from); scene.add(m);
+  projectiles.push({ m, from, to, t: 0, T, phase: 'fly', vy: 0 });
+}
+function onHit(p) {
+  scene.remove(p.m); p.phase = 'gone';
+  week.paid++;
+  bucketFill.position.y = Math.min(.2, bucketFill.position.y + .012);
+  sfx.coin();
+  if (week.paid < week.need) {
+    const rest = week.need - week.paid;
+    toast(`${week.paid} von ${week.need} € im Eimer`);
+    say(schulte.userData.head, rest === 1 ? 'Noch ein Euro!' : `Noch ${rest} Euro!`, 1.4);
+    return;
+  }
+  state = 'paid'; ring.visible = false;
+  sfx.win();
+  say(schulte.userData.head, pick(PAID_Q), 2.2);
+  toast(week.special ? 'Fünf Euro im Eimer!' : 'Euro im Eimer!');
+  stats.weeks++; stats.paid += week.need; saveStats();
+  setTimeout(() => openDraw(true), 2000);
+}
+function onMiss(p) {
+  p.phase = 'fall'; p.vy = 2.5;
+  sfx.clank();
+  say(schulte.userData.head, pick(MISS_Q), 1.8);
+}
+function onArrive() {
+  if (state !== 'run') return;
+  state = 'lost'; ring.visible = false;
+  say(schulte.userData.head, 'Annahmeschluss. Ohne dich.', 2.5);
+  sfx.sad();
+  stats.weeks++; stats.schuldner++; stats.paid += week.paid; saveStats();
+  setTimeout(showLost, 1700);
+}
+
+/* ---------- Eingabe ---------- */
+let ptr = null;
+canvas.addEventListener('pointerdown', e => { ptr = { x: e.clientX, y: e.clientY, t: performance.now(), done: false }; });
+canvas.addEventListener('pointermove', e => {
+  if (!ptr || ptr.done) return;
+  const dx = e.clientX - ptr.x, dy = e.clientY - ptr.y;
+  if (Math.hypot(dx, dy) > 34) { ptr.done = true; if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 1 : -1); else if (dy < 0) jump(); }
+});
+canvas.addEventListener('pointerup', () => { if (ptr && !ptr.done && performance.now() - ptr.t < 400) throwCoin(); ptr = null; });
+canvas.addEventListener('pointercancel', () => { ptr = null; });
+addEventListener('keydown', e => {
+  if (state !== 'run') return;
+  const k = e.key;
+  if (k === 'ArrowLeft' || k === 'a') move(-1);
+  else if (k === 'ArrowRight' || k === 'd') move(1);
+  else if (k === 'ArrowUp' || k === 'w') jump();
+  else if (k === ' ' || k === 'Enter') { e.preventDefault(); throwCoin(); }
+});
+
+/* ---------- Sprechblasen, Toast, Banner ---------- */
+const bubbleLayer = $('#bubbles'), bubbles = [];
+let clockT = 0;
+function say(obj, text, dur) {
+  if (!obj) return;
+  const old = bubbles.findIndex(b => b.obj === obj);
+  if (old >= 0) { bubbles[old].el.remove(); bubbles.splice(old, 1); }
+  const el = document.createElement('div'); el.className = 'bubble'; el.textContent = text;
+  el.style.visibility = 'hidden'; bubbleLayer.appendChild(el);
+  bubbles.push({ obj, el, until: clockT + (dur || 2.2) });
+}
+function hasBubble(obj) { return bubbles.some(b => b.obj === obj); }
+function clearBubbles() { bubbles.forEach(b => b.el.remove()); bubbles.length = 0; }
+const vTmp = new THREE.Vector3();
+function updateBubbles() {
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i];
+    if (clockT > b.until || !b.obj.parent) { b.el.remove(); bubbles.splice(i, 1); continue; }
+    b.obj.getWorldPosition(vTmp); vTmp.y += .55; vTmp.project(camera);
+    if (vTmp.z > 1) { b.el.style.visibility = 'hidden'; continue; }
+    const x = (vTmp.x * .5 + .5) * W, y = (-vTmp.y * .5 + .5) * H;
+    b.el.style.visibility = 'visible';
+    b.el.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%)`;
+  }
+}
+let toastTimer = 0;
+function toast(t) {
+  const el = $('#toast'); el.textContent = t; el.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 1800);
+}
+let bannerTimer = 0;
+function showBanner(t, s) {
+  const el = $('#banner');
+  el.querySelector('.bt').textContent = t; el.querySelector('.bs').textContent = s;
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  clearTimeout(bannerTimer); bannerTimer = setTimeout(() => el.classList.remove('on'), 3000);
+}
+
+/* ---------- Update ---------- */
+const bTmp = new THREE.Vector3();
+function update(dt) {
+  const running = state === 'run' || state === 'paid' || state === 'lost';
+  if (running) {
+    let st = (S.finished || S.excel > 0) ? 0 : (S.z < -L + 130 ? S_BASE * 1.18 : S_BASE);
+    if (!S.sprint && S.z < -L + 130 && state === 'run') { S.sprint = true; say(schulte.userData.head, 'Endspurt! Gleich macht das Büdchen zu!', 2.2); }
+    S.speed += (st - S.speed) * Math.min(1, dt * 5);
+    if (S.excel > 0) { S.excel -= dt; if (S.excel <= 0) laptop.visible = false; }
+    if (!S.finished) { S.z -= S.speed * dt; if (S.z <= -L) { S.z = -L; S.finished = true; S.speed = 0; onArrive(); } }
+    if (!S.finished && S.excel <= 0) schulteAI(dt);
+    S.x += (LANES[S.lane] - S.x) * Math.min(1, dt * 7);
+    if (state === 'run') {
+      S.nextExcel -= dt; S.nextDrop -= dt; S.nextQuip -= dt;
+      const flying = projectiles.some(p => p.phase === 'fly');
+      if (S.nextExcel <= 0 && !flying && S.z > -L + 140) {
+        S.excel = 1.6; laptop.visible = true; say(schulte.userData.head, pick(EXCEL_Q), 1.6); S.nextExcel = rand(10, 16);
+      }
+      if (S.nextDrop <= 0) {
+        S.nextDrop = week.special ? rand(1.4, 2.4) : rand(2.2, 4.2);
+        const onRoad = pickups.filter(p => p.kind === 'coin').length;
+        if (P.ammo + onRoad < (week.special ? 4 : 3)) dropCoin();
+      }
+      if (S.nextQuip <= 0) { S.nextQuip = rand(6, 10); if (!hasBubble(schulte.userData.head)) say(schulte.userData.head, pick(week.special && Math.random() < .6 ? SPECIAL_Q : SCHULTE_Q)); }
+      for (const t of triggers) {
+        if (t.done) continue;
+        if ((t.who === 's' && S.z < t.z) || (t.who === 'p' && t.z < P.z && P.z - t.z < 15)) {
+          t.done = true; if (t.fn) t.fn();
+          say(t.anchor || schulte.userData.head, t.text, 2.6);
+          if (t.who === 's') S.nextQuip = Math.max(S.nextQuip, 4);
+        }
+      }
+    }
+    const pt = state === 'run' ? (P.stun > 0 ? 2.5 : P_BASE + (P.boost > 0 ? 5 : 0)) : 0;
+    P.speed += (pt - P.speed) * Math.min(1, dt * (P.stun > 0 ? 10 : state === 'run' ? 3 : 1.4));
+    P.stun = Math.max(0, P.stun - dt); P.boost = Math.max(0, P.boost - dt);
+    P.z -= P.speed * dt;
+    if (P.z - S.z < 2.4) P.z = S.z + 2.4;
+    P.x += (LANES[P.lane] - P.x) * Math.min(1, dt * 12);
+    if (P.jumpT >= 0) { P.jumpT += dt; if (P.jumpT >= .6) { P.jumpT = -1; P.y = 0; } else P.y = 1.25 * Math.sin(Math.PI * P.jumpT / .6); }
+    const gap = P.z - S.z;
+    if (state === 'run') {
+      if (gap <= RANGE && !S.warned) { S.warned = true; if (!hasBubble(schulte.userData.head)) say(schulte.userData.head, 'Oh nein. Der will zahlen.', 1.6); }
+      if (gap > RANGE + 5) S.warned = false;
+      spawnAhead(); collide(dt);
+    }
+  }
+
+  const bob = P.speed > 1 && P.y === 0 ? Math.abs(Math.sin(P.phase)) * .07 : 0;
+  player.position.set(P.x, P.y + bob, P.z);
+  P.phase += dt * P.speed * .95;
+  if (P.y > 0) { player.userData.legL.rotation.x = .9; player.userData.legR.rotation.x = -.5; }
+  else if (P.speed > .6) animRun(player, P.phase, .85);
+  else animIdle(player, dt);
+  player.rotation.z = P.stun > 0 ? Math.sin(clockT * 30) * .12 : 0;
+  if (P.throwAnim > 0) {
+    P.throwAnim -= dt; const t = 1 - Math.max(0, P.throwAnim) / .35;
+    player.userData.armR.rotation.x = -2.6 * Math.sin(Math.PI * t);
+  }
+  const sBob = S.speed > 1 ? Math.abs(Math.sin(S.phase)) * .06 : 0;
+  schulte.position.set(S.x, sBob, S.z);
+  S.phase += dt * S.speed * .85;
+  if (S.speed > .6) { animRun(schulte, S.phase, .7, false); schulte.userData.armL.rotation.x = -Math.sin(S.phase) * .7; }
+  else animIdle(schulte, dt);
+  schulte.userData.armR.rotation.x = Math.sin(S.phase) * .12;
+  bucket.rotation.z = Math.sin(S.phase * 2) * .1;
+  if (S.finished) schulte.rotation.y += (Math.PI - schulte.rotation.y) * Math.min(1, dt * 3);
+  hazardMat.emissiveIntensity = Math.sin(clockT * 7) > 0 ? 1.2 : 0;
+
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const o = obstacles[i];
+    if (o.m.userData.person) {
+      const pu = o.m.userData.person.userData;
+      if (pu.wave) pu.armR.rotation.z = 2.5 + Math.sin(clockT * 8) * .3;
+    }
+    if (o.knock > 0) {
+      o.knock = Math.max(0, o.knock - dt * 1.5);
+      if (o.low) { o.m.rotation.x = -(1 - o.knock) * 1.3; o.m.position.z -= dt * 4 * o.knock; }
+      else o.m.rotation.z = Math.sin(o.knock * 20) * .25 * o.knock;
+    }
+    if (P && o.z - (o.len || 0) > P.z + 9) { scene.remove(o.m); obstacles.splice(i, 1); }
+  }
+  for (let i = pickups.length - 1; i >= 0; i--) {
+    const p = pickups[i];
+    if (p.falling) { p.vy -= 18 * dt; p.m.position.y += p.vy * dt; if (p.m.position.y <= .45) { p.m.position.y = .45; p.falling = false; } }
+    else p.m.position.y = .45 + Math.sin(clockT * 3 + i) * .06;
+    p.m.rotation.y += dt * 3;
+    if (P && p.z > P.z + 6) { scene.remove(p.m); pickups.splice(i, 1); }
+  }
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    if (p.phase === 'fly') {
+      p.t += dt; const k = Math.min(1, p.t / p.T);
+      p.m.position.lerpVectors(p.from, p.to, k); p.m.position.y += 1.5 * 4 * k * (1 - k);
+      p.m.rotation.x += dt * 16;
+      if (k >= 1) {
+        if (state === 'run') {
+          bucket.getWorldPosition(bTmp);
+          if (Math.hypot(bTmp.x - p.to.x, bTmp.z - p.to.z) < .85 * bucket.scale.x) onHit(p); else onMiss(p);
+        } else onMiss(p);
+      }
+    } else if (p.phase === 'fall') {
+      p.vy -= 20 * dt; p.m.position.y += p.vy * dt; p.m.position.z -= dt * 3;
+      if (p.m.position.y <= .03) { p.m.position.y = .03; p.m.rotation.set(Math.PI / 2, 0, 0); p.phase = 'rest'; }
+    }
+    if (p.phase === 'gone' || (P && p.m.position.z > P.z + 8)) { scene.remove(p.m); projectiles.splice(i, 1); }
+  }
+  if (state === 'run') {
+    const inRange = P.z - S.z <= RANGE;
+    ring.visible = inRange;
+    if (inRange) { bucket.getWorldPosition(bTmp); ring.position.set(bTmp.x, .04, bTmp.z); }
+  }
+
+  shake = Math.max(0, shake - dt);
+  const sx = shake > 0 ? rand(-.12, .12) : 0, sy = shake > 0 ? rand(-.1, .1) : 0;
+  camera.position.x += (P.x * .55 - camera.position.x) * Math.min(1, dt * 5);
+  camera.position.y = 4.4 + sy;
+  camera.position.z = P.z + 7.6;
+  camera.position.x += sx;
+  camera.lookAt(P.x * .25, 1.4, P.z - 9);
+  sun.position.set(P.x + 7, 16, P.z + 2);
+  sun.target.position.set(P.x, 0, P.z - 9);
+
+  if (running) updateHud();
+}
+function collide(dt) {
+  for (const o of obstacles) {
+    const dz = o.z - P.z;
+    if (o.kind === 'bus') {
+      if (o.cool > 0) { o.cool -= dt; continue; }
+      if (Math.abs(dz) < o.len + .45 && Math.abs(P.x - LANES[o.lane]) < .95) {
+        o.cool = .8; P.stun = .85; shake = .45; P.lane = 1; sfx.honk();
+        say(o.anchor, 'Huuup! Hier hält die 484!', 1.8);
+      }
+      continue;
+    }
+    if (o.hit) continue;
+    if (o.speech && !o.spoke && o.anchor && dz < -9 && dz > -17) { o.spoke = true; say(o.anchor, pick(o.speech), 2.2); }
+    if (Math.abs(dz) < .75 && Math.abs(P.x - LANES[o.lane]) < .95) {
+      if (o.low && P.y > .45) continue;
+      o.hit = true; o.knock = 1; P.stun = .85; shake = .35; sfx.bump();
+      if (Math.random() < .55) say(schulte.userData.head, pick(LAUGH_Q), 1.6);
+    }
+  }
+  for (let i = pickups.length - 1; i >= 0; i--) {
+    const p = pickups[i];
+    if (Math.abs(p.z - P.z) < .9 && Math.abs(P.x - LANES[p.lane]) < .95 && P.y < 1) {
+      if (p.kind === 'coin') { P.ammo++; sfx.coin(); }
+      else { P.boost = 3; sfx.win(); toast('Mettbrötchen! Drei Sekunden Turbo.'); }
+      scene.remove(p.m); pickups.splice(i, 1);
+    }
+  }
+}
+
+/* ---------- HUD ---------- */
+const hud = { gap: $('#hudGap'), time: $('#hudTime'), ammo: $('#hudAmmo'), s: $('#sMark'), p: $('#pMark'), fill: $('#hudFill'), sp: $('#hudSpecial') };
+function updateHud() {
+  const gap = Math.max(0, P.z - S.z);
+  if (state === 'paid') { hud.gap.textContent = 'Bezahlt'; hud.gap.className = 'pill in'; }
+  else if (gap <= RANGE) { hud.gap.textContent = 'In Wurfweite!'; hud.gap.className = 'pill in'; }
+  else { hud.gap.textContent = `Abstand ${Math.round(gap)} m`; hud.gap.className = 'pill'; }
+  const secs = Math.max(0, (L + S.z) / Math.max(S_BASE, S.speed));
+  hud.time.textContent = `Annahmeschluss ${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}`;
+  hud.time.className = secs < 10 && state === 'run' ? 'pill warn' : 'pill';
+  hud.ammo.textContent = P.ammo;
+  if (week.special) hud.sp.textContent = `Jackpot ${week.jackpot} Mio.: ${week.paid} von ${week.need} € im Eimer`;
+  const sp = clamp(-S.z / L, 0, 1) * 100, pp = clamp(-P.z / L, 0, 1) * 100;
+  hud.s.style.left = sp + '%'; hud.p.style.left = pp + '%'; hud.fill.style.width = sp + '%';
+}
+
+/* ---------- Screens ---------- */
+function showScreen(id) {
+  ['#startScreen', '#lostScreen', '#drawScreen'].forEach(s => $(s).classList.toggle('on', s === id));
+  if (id) $('#hud').classList.remove('on');
+}
+function xlRow(table, amount, status) {
+  const cls = status === 'bezahlt' ? 'green' : status === 'Teilzahler' ? 'amber' : 'red';
+  table.innerHTML = `<tr><th>Teilnehmer</th><th>KW ${curKW}</th><th>Status</th></tr>
+    <tr><td>Du</td><td>${eur(amount)}</td><td class="${cls}">${status}</td></tr>`;
+}
+function showLost() {
+  state = 'lostScreen';
+  let text;
+  if (week.special && week.paid > 0) {
+    $('#lostTitle').textContent = 'Teilzahlung zählt nicht';
+    text = `Du hast ${week.paid} von 5 € eingeworfen. Das zählt als nicht bezahlt. Das Geld bleibt trotzdem im Eimer.`;
+    xlRow($('#lostXl'), week.paid, 'Teilzahler');
+  } else if (week.special) {
+    $('#lostTitle').textContent = 'Jackpot-Woche verpasst';
+    text = 'Ausgerechnet bei 90 Millionen. Wenn die Runde jetzt gewinnt, erzählt man sich das noch in zwanzig Jahren im Onkel.';
+    xlRow($('#lostXl'), 0, 'Schuldner');
+  } else {
+    $('#lostTitle').textContent = 'Schulte war schneller';
+    text = 'Er hat ohne dich gespielt. Gute Nachricht: Du hast einen Euro gespart. Schlechte Nachricht: Die Excel-Tabelle vergisst nichts.';
+    xlRow($('#lostXl'), 0, 'Schuldner');
+  }
+  $('#lostText').textContent = text;
+  showScreen('#lostScreen');
+  $('#retryBtn').focus({ preventScroll: true });
+}
+function updateStartScreen() {
+  $('#statsLine').textContent = stats.weeks
+    ? `Bisher ${stats.weeks} Wochen gespielt, ${eur(stats.paid)} eingezahlt, ${eur(stats.payout)} an dich ausgezahlt. Millionenkracher-Topf: ${eur(stats.pot)}.`
+    : 'Pro Woche ein Euro. Was soll da schon schiefgehen.';
+  $('#jpLine').textContent = stats.jackpot >= SPECIAL_JP
+    ? `Jackpot: ${stats.jackpot} Mio. €. Jackpot-Woche! Heute 5 € pro Person.`
+    : `Aktueller Jackpot: ${stats.jackpot} Mio. €. Ab ${SPECIAL_JP} Mio. sammelt Schulte 5 € pro Person.`;
+}
+function resolveWeek(groupJackpot) {
+  if (week.resolved) return week.jpMsg;
+  week.resolved = true;
+  let msg;
+  if (groupJackpot) { stats.jackpot = 10; msg = 'Der Jackpot ist weg. An euch! Neustart bei 10 Mio. €.'; }
+  else if (Math.random() < (stats.jackpot >= SPECIAL_JP ? .25 : .12)) {
+    stats.jackpot = 10; msg = `Der Jackpot wurde in ${pick(LAENDER)} geknackt. Nicht von euch. Nächste Woche: 10 Mio. €.`;
+  } else {
+    stats.jackpot = Math.min(120, stats.jackpot + Math.round(rand(8, 16)));
+    msg = stats.jackpot >= SPECIAL_JP ? `Nächste Woche: ${stats.jackpot} Mio. € im Jackpot. Jackpot-Woche, 5 € pro Person!` : `Nächste Woche: ${stats.jackpot} Mio. € im Jackpot.`;
+  }
+  saveStats(); week.jpMsg = msg;
+  return msg;
+}
+
+/* ---------- Ziehung ---------- */
+let drawTimers = [];
+function drawNums(k, n) { const a = Array.from({ length: n }, (_, i) => i + 1).sort(() => Math.random() - .5); return a.slice(0, k).sort((x, y) => x - y); }
+function openDraw(paid) {
+  state = 'draw';
+  drawTimers.forEach(clearTimeout); drawTimers = [];
+  const N = week.special ? 5 : 1;
+  const zahlen = drawNums(5, 50), euro = drawNums(2, 12);
+  const tipps = Array.from({ length: N }, () => ({ n: drawNums(5, 50), e: drawNums(2, 12) }));
+  tipps.forEach(t => {
+    t.m = t.n.filter(v => zahlen.includes(v)).length; t.ee = t.e.filter(v => euro.includes(v)).length;
+    t.key = `${t.m}+${t.ee}`; t.prize = t.key === '5+2' ? week.jackpot * 1e6 : (QUOTEN[t.key] || 0);
+  });
+  const best = tipps.slice().sort((a, b) => (b.prize - a.prize) || ((b.m * 3 + b.ee) - (a.m * 3 + a.ee)))[0];
+  $('#drawTitle').textContent = week.special ? `Ziehung KW ${curKW}, Jackpot ${week.jackpot} Mio. €` : `Ziehung KW ${curKW}`;
+  $('#tippLabel').textContent = N > 1 ? `Bester von ${N} Tipps` : 'Euer Tipp';
+  const g50 = $('#g50'), g12 = $('#g12'), balls = $('#balls'), res = $('#result'), stamp = $('#stamp');
+  g50.innerHTML = ''; g12.innerHTML = ''; balls.innerHTML = ''; res.innerHTML = '';
+  stamp.className = 'stamp'; stamp.innerHTML = '';
+  $('#drawXl').classList.add('hidden'); $('#nextBtn').classList.add('hidden');
+  const cells50 = {}, cells12 = {};
+  for (let i = 1; i <= 50; i++) { const c = document.createElement('div'); c.className = 'cell' + (best.n.includes(i) ? ' x' : ''); c.textContent = i; g50.appendChild(c); cells50[i] = c; }
+  for (let i = 1; i <= 12; i++) { const c = document.createElement('div'); c.className = 'cell' + (best.e.includes(i) ? ' x' : ''); c.textContent = i; g12.appendChild(c); cells12[i] = c; }
+  showScreen('#drawScreen');
+  const seq = zahlen.map(n => ({ n, e: false })).concat(euro.map(n => ({ n, e: true })));
+  const step = reduceMotion ? 250 : 850;
+  seq.forEach((s, i) => drawTimers.push(setTimeout(() => {
+    const b = document.createElement('div'); b.className = 'ball' + (s.e ? ' euro' : ''); b.textContent = s.n;
+    const cell = s.e ? cells12[s.n] : cells50[s.n];
+    const hit = s.e ? best.e.includes(s.n) : best.n.includes(s.n);
+    if (hit) { b.classList.add('hit'); cell.classList.add('hit'); sfx.coin(); } else { cell.classList.add('drawn'); sfx.ball(); }
+    balls.appendChild(b);
+  }, 500 + i * step)));
+  drawTimers.push(setTimeout(() => finishDraw(paid, tipps, best), 500 + seq.length * step + 400));
+}
+function finishDraw(paid, tipps, best) {
+  const total = tipps.reduce((s, t) => s + t.prize, 0);
+  const jp = tipps.some(t => t.key === '5+2');
+  const line = `${tipps.length > 1 ? 'Bester Tipp: ' : ''}${best.m} Richtige${best.ee ? ` + ${best.ee} Eurozahl${best.ee > 1 ? 'en' : ''}` : ''}`;
+  let txt;
+  if (!total) {
+    txt = paid ? pick(NOWIN_Q) : 'Glück gehabt: Ohne dich war’s auch nichts. Rot in der Tabelle stehst du trotzdem.';
+    sfx.sad();
+  } else if (total <= 100) {
+    stats.pot += total;
+    txt = paid ? 'Wandert in den Millionenkracher-Topf. Der knallt an Silvester. Wahrscheinlich ins Leere.'
+      : 'Die Runde hat gewonnen. Dein Anteil: 0,00 €. Schulte lässt grüßen.';
+    sfx.win();
+  } else {
+    const share = total / 12;
+    if (paid) stats.payout += share;
+    txt = paid ? `Geteilt durch 12 sind das ${eur(share)} für dich. Plötzlich behaupten 30 Leute, sie hätten auch mitgespielt.`
+      : 'Dein Anteil: 0,00 €. Die Excel-Tabelle ist eindeutig. Schulte auch.';
+    sfx.win();
+  }
+  const stamp = $('#stamp');
+  if (!total) { stamp.className = 'stamp on lose'; stamp.textContent = 'Nicht gewonnen'; }
+  else {
+    stamp.className = 'stamp on ' + (jp ? 'jackpot' : 'win');
+    stamp.innerHTML = `${jp ? 'Jackpot!' : 'Gewonnen!'}<small></small>`;
+    stamp.querySelector('small').textContent = paid ? eur(total) : `${eur(total)}, ohne dich`;
+  }
+  const jpMsg = resolveWeek(jp);
+  saveStats();
+  $('#result').innerHTML = '<div class="big"></div><p></p><p class="small"></p><p class="small"></p>';
+  $('#result .big').textContent = `${line}. Gewinn: ${eur(total)}`;
+  $('#result p').textContent = txt;
+  const sm = $('#result').querySelectorAll('.small');
+  sm[0].textContent = jpMsg;
+  sm[1].textContent = `Bilanz: ${stats.weeks} Wochen, ${eur(stats.paid)} eingezahlt, ${eur(stats.payout)} an dich ausgezahlt. Millionenkracher-Topf: ${eur(stats.pot)}.`;
+  const status = paid ? 'bezahlt' : (week.paid > 0 ? 'Teilzahler' : 'Schuldner');
+  xlRow($('#drawXl'), paid ? week.need : week.paid, status);
+  $('#drawXl').classList.remove('hidden');
+  const nb = $('#nextBtn'); nb.classList.remove('hidden'); nb.focus({ preventScroll: true });
+}
+
+$('#startBtn').addEventListener('click', () => startRun(false));
+$('#specialBtn').addEventListener('click', () => startRun(true));
+$('#retryBtn').addEventListener('click', () => startRun(false));
+$('#watchBtn').addEventListener('click', () => openDraw(false));
+$('#nextBtn').addEventListener('click', () => startRun(false));
+
+/* ---------- Start ---------- */
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now; clockT += dt;
+  update(dt);
+  renderer.render(scene, camera);
+  updateBubbles();
+  requestAnimationFrame(frame);
+}
+function init() {
+  buildCoinAssets();
+  buildActors();
+  buildWorld();
+  resetActors();
+  camera.position.set(0, 4.4, 7.6);
+  updateStartScreen();
+  requestAnimationFrame(frame);
+}
+const fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+Promise.race([fontsReady, new Promise(r => setTimeout(r, 1500))]).then(init);
+})();
+</script>
+</body>
+</html>
